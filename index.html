@@ -89,11 +89,12 @@
     text-align:center;opacity:0;pointer-events:none;transition:opacity 1s ease;
     background:radial-gradient(ellipse at 50% 60%,rgba(27,42,94,.35),rgba(27,42,94,.7));
   }
-  #finale.on{opacity:1;pointer-events:auto}
+  #finale.on{opacity:1;pointer-events:none}
   .card{
     background:var(--cream);border:4px solid var(--navy);border-radius:28px;
     padding:3rem 3.4rem;max-width:min(88vw,560px);
     box-shadow:0 10px 0 rgba(35,49,95,.35),0 30px 60px rgba(10,16,40,.45);
+    pointer-events:auto;
   }
   .card h2{font-family:'Fredoka',sans-serif;font-weight:700;font-size:clamp(1.8rem,6vw,3.2rem);color:var(--navy)}
   .card p{margin-top:.9rem;color:#4a5585;font-weight:600;line-height:1.6}
@@ -103,51 +104,14 @@
     box-shadow:0 7px 0 #d96a55;transition:transform .15s ease;
   }
   .card a:hover{transform:translateY(-3px)}
+  .card button{
+    display:block;margin:1.1rem auto 0;padding:.72rem 1.6rem;border:3px solid var(--navy);border-radius:999px;
+    font-family:'Fredoka',sans-serif;font-weight:700;font-size:.95rem;color:var(--navy);background:var(--cream);
+    cursor:pointer;box-shadow:0 5px 0 rgba(35,49,95,.22);transition:transform .15s ease;
+  }
+  .card button:hover{transform:translateY(-2px)}
 
   @media (prefers-reduced-motion: reduce){ #ignition,#finale,#hud,#hint{transition:none} #ticker .tape{animation:none} }
-
-  /* Interactive Order Book Styles */
-  #openObBtn {
-    position: fixed; bottom: 80px; right: 20px; z-index: 15;
-    padding: 1rem 2rem; font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 1.1rem;
-    color: var(--navy); background: var(--mint); border: 3px solid var(--navy); border-radius: 999px;
-    box-shadow: 0 5px 0 var(--navy); cursor: pointer; transition: transform 0.15s, opacity 0.3s;
-    opacity: 0; pointer-events: none;
-  }
-  #openObBtn.visible { opacity: 1; pointer-events: auto; }
-  #openObBtn:hover { transform: translateY(-3px); }
-  
-  #orderBookOverlay {
-    position: fixed; inset: 0; z-index: 25; background: rgba(35,49,95,0.85);
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none; transition: opacity 0.3s;
-  }
-  #orderBookOverlay.open { opacity: 1; pointer-events: auto; }
-  
-  .ob-card {
-    background: var(--navy); color: var(--cream); border: 4px solid var(--mint);
-    border-radius: 20px; padding: 2rem; width: 90%; max-width: 600px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.5); font-family: 'Nunito', sans-serif;
-  }
-  .ob-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--mint); padding-bottom: 1rem; margin-bottom: 1rem; }
-  .ob-header h3 { font-family: 'Fredoka', sans-serif; color: var(--mint); font-size: 1.5rem; margin: 0; }
-  .ob-header button { background: transparent; color: var(--coral); border: none; font-size: 1.8rem; font-weight: 900; cursor: pointer; margin-left: 1rem; }
-  
-  .ob-content { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-  .ob-bids, .ob-asks { flex: 1; min-width: 200px; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 10px; }
-  .ob-bids h4 { color: var(--mint); margin-bottom: 0.5rem; font-family: 'Fredoka', sans-serif; margin-top: 0; }
-  .ob-asks h4 { color: var(--coral); margin-bottom: 0.5rem; font-family: 'Fredoka', sans-serif; margin-top: 0; }
-  .ob-bids ul, .ob-asks ul { list-style: none; padding: 0; margin: 0; max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 1.1rem; }
-  .ob-bids li { color: #a8f0d0; padding: 0.2rem 0; border-bottom: 1px dashed rgba(255,255,255,0.1); }
-  .ob-asks li { color: #ffb8a8; padding: 0.2rem 0; border-bottom: 1px dashed rgba(255,255,255,0.1); }
-  
-  .ob-form { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
-  .ob-form input, .ob-form select { padding: 0.8rem; border: 2px solid var(--mint); border-radius: 8px; background: #fff; font-family: 'Nunito', sans-serif; font-size: 1rem; color: var(--navy); }
-  .ob-form input[type="text"] { grid-column: 1 / -1; }
-  .ob-form button { grid-column: 1 / -1; padding: 1rem; background: var(--sun); border: 3px solid var(--navy); border-radius: 8px; font-weight: 800; font-size: 1.1rem; cursor: pointer; font-family: 'Fredoka', sans-serif; color: var(--navy); transition: background 0.2s, transform 0.1s; box-shadow: 0 4px 0 var(--navy); }
-  .ob-form button:hover { background: #ffe699; }
-  .ob-form button:active { transform: translateY(4px); box-shadow: 0 0 0 var(--navy); }
-
 
   @media (max-width: 768px) {
     #hud {
@@ -165,31 +129,6 @@
     .pill .label {
       font-size: 0.55rem;
     }
-    .ob-card {
-      padding: 1.2rem;
-      max-height: 90vh;
-      overflow-y: auto;
-      margin-top: -10vh; /* Shift up a bit */
-    }
-    .ob-header h3 {
-      font-size: 1.2rem;
-    }
-    .ob-content {
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-    .ob-bids ul, .ob-asks ul {
-      max-height: 120px;
-    }
-    .ob-form {
-      grid-template-columns: 1fr;
-    }
-    #openObBtn {
-      bottom: 120px; /* Above the wrapped HUD */
-      padding: 0.8rem 1.4rem;
-      font-size: 1rem;
-    }
   }
 
 </style>
@@ -203,7 +142,7 @@
 <div id="ignition">
   <div class="sub">✦ the story of a quant developer ✦</div>
   <h1>Welcome to<br>Hassan City</h1>
-  <p>A flying tour through my life - past candlestick skylines, billboards of questionable modesty, and one very golden bank. We lift off at the opening bell and land under the stars.</p>
+  <p>A flying tour through my work and interests - past market skylines, career milestones, side projects, and one very golden bank. We lift off at the opening bell and land under the stars.</p>
   <button id="startBtn">Take Off ✈</button>
 </div>
 
@@ -217,8 +156,9 @@
 <div id="finale">
   <div class="card">
     <h2>You made it! 🌙</h2>
-    <p>That was my story - school, markets, machine learning, and everything in between. The backtest looks strong; if the next position should include you, say hello.</p>
+    <p>That was my story - school, markets, machine learning, and the projects that keep me curious after hours. If the next chapter should include you, say hello.</p>
     <a href="https://www.linkedin.com/in/hassantq/" target="_blank" rel="noopener">Connect on LinkedIn →</a>
+    <button id="exploreAgainBtn" type="button">Keep exploring</button>
   </div>
 </div>
 
@@ -227,40 +167,6 @@
 <div id="spacer"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<div id="orderBookOverlay">
-  <div class="ob-card">
-    <div class="ob-header">
-      <h3>HSSN ORDER BOOK (STOP 3)</h3>
-      <button id="closeObBtn">X</button>
-    </div>
-    <div class="ob-content">
-      <div class="ob-bids">
-        <h4>BIDS (Px | Sz | Name)</h4>
-        <ul id="bidList">
-          <li>102.50 | 100 | Alice</li>
-          <li>102.40 | 500 | Bob</li>
-          <li>101.90 | 250 | MM</li>
-        </ul>
-      </div>
-      <div class="ob-asks">
-        <h4>ASKS (Px | Sz | Name)</h4>
-        <ul id="askList">
-          <li>103.10 | 200 | Charlie</li>
-          <li>103.50 | 150 | Dave</li>
-          <li>104.00 | 800 | MM</li>
-        </ul>
-      </div>
-    </div>
-    <div class="ob-form">
-      <select id="obSide"><option value="bid">BID</option><option value="ask">ASK</option></select>
-      <input type="number" id="obPrice" placeholder="Price (e.g. 103.0)" step="0.1">
-      <input type="number" id="obSize" placeholder="Size (e.g. 100)" step="10">
-      <input type="text" id="obName" placeholder="Your Name">
-      <button id="obSubmit">PLACE LIMIT ORDER</button>
-    </div>
-  </div>
-</div>
-<button id="openObBtn">Trade $HSSN</button>
 <script>
 (() => {
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -268,7 +174,7 @@
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0xcfeaf7, 0.0024);
 
-  const initialFov = innerWidth/innerHeight < 1 ? 85 : 62; const camera = new THREE.PerspectiveCamera(initialFov, innerWidth/innerHeight, .1, 1100);
+  const initialFov = innerWidth/innerHeight < 1 ? 100 : 62; const camera = new THREE.PerspectiveCamera(initialFov, innerWidth/innerHeight, .1, 1100);
   const renderer = new THREE.WebGLRenderer({ antialias:true });
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -347,14 +253,14 @@
       foot:'LIVE SINCE SEP 2025 · MULTI-ASSET ML MODELS · GREEKS COMPUTED DAILY',
       lines:['ML.NET models trading global equities, with','Databricks research pipelines feeding the desk.','Built an OTC options platform pricing Greeks,','vol surfaces and IV contango - fully deployed','and generating signals in production.'] },
     { t:.82, carrier:'balloon', tag:'STOP 4 · MY TOOLBOX', title:'WHAT I BUILD WITH', sub:'Current stack & future directions', accent:'#e8a93d',
-      foot:'DIVERSIFIED PORTFOLIO · LOW LATENCY · HIGH CONVICTION',
+      foot:'STACK: .NET · PYTHON · DATA · CLOUD',
       lines:['C# · .NET · Blazor · ML.NET · WPF · SQL','Python · Databricks · FIX Protocol','Azure DevOps · PowerShell · MSSQL','Currently evaluating PostgreSQL & AWS','for the next generation of the stack.'] },
-    { t:.90, carrier:'party', tag:'STOP 5 · AFTER HOURS', title:'LIFE OUTSIDE CODE', sub:'Sports, cars, side projects & markets', accent:'#a55f9c',
-      foot:'WEEKEND VOLATILITY: HIGH · SIDE PROJECTS: ALWAYS ON',
-      lines:['Padel and cricket on weekends, a Mustang','GT that gets more tuning than my models,','personal coding projects shipping on the','side, and a watchlist of global emerging','markets that never quite closes.'] },
+    { t:.90, carrier:'party', tag:'STOP 5 · AFTER HOURS', title:'LIFE OUTSIDE CODE', sub:'Sports, cars, projects & markets', accent:'#a55f9c',
+      foot:'SIDE PROJECTS · SPORTS · MARKETS · CARS',
+      lines:['Padel and cricket keep weekends competitive.','The Mustang GT scratches the tuning itch.','Personal coding projects are where I test','new ideas, and the emerging-markets','watchlist stays open in the background.'] },
     { t:.97, carrier:'helipad', tag:'FINAL STOP', title:"LET'S TALK", sub:'Markets · code · big ideas', accent:'#e2674f',
-      foot:'LIMIT ORDERS ACCEPTED · LINKEDIN.COM/IN/HASSANTQ',
-      lines:['The landing pad is just ahead. If you','trade, build, or simply want to argue','about vol surfaces over coffee,','the order book is open -','bring your best question.'] },
+      foot:'LINKEDIN.COM/IN/HASSANTQ · OPEN TO GREAT CONVERSATIONS',
+      lines:['The landing pad is just ahead. If you','trade, build, or want to compare notes','on ML systems, options risk, or markets,','send a message and bring your best','question.'] },
   ];
   const anchors = chapters.map(ch => path.getPointAt(ch.t));
 
@@ -421,16 +327,16 @@
     roundRect(g, 24, 24, 464, 208, 12); g.stroke();
 
     if(type === 'capital'){
-      bbText(g, 'HASSAN CAPITAL', 104, 60, '700 {s}px Fredoka, sans-serif', '#ffd166');
-      bbText(g, 'QUANT EQUITIES · ABU DHABI', 150, 28, '800 {s}px Nunito, sans-serif', '#fff8ec');
+      bbText(g, 'HASSAN TARIQ', 104, 60, '700 {s}px Fredoka, sans-serif', '#ffd166');
+      bbText(g, 'QUANT DEVELOPER · ABU DHABI', 150, 28, '800 {s}px Nunito, sans-serif', '#fff8ec');
       g.strokeStyle = '#7bdcb5'; g.lineWidth = 7; g.beginPath();
       g.moveTo(70, 216); g.lineTo(150, 198); g.lineTo(225, 208); g.lineTo(320, 184); g.lineTo(442, 170); g.stroke();
     } else if(type === 'sharpe'){
-      bbText(g, 'ALPHA GENERATION', 126, 88, '700 {s}px Fredoka, sans-serif', '#7bdcb5');
-      bbText(g, 'ASK HASSAN ABOUT QUANT EQUITIES', 186, 26, '800 {s}px Nunito, sans-serif', '#fff8ec');
+      bbText(g, 'RESEARCH TO PROD', 118, 68, '700 {s}px Fredoka, sans-serif', '#7bdcb5');
+      bbText(g, 'ML MODELS FOR REAL MARKET DESKS', 178, 26, '800 {s}px Nunito, sans-serif', '#fff8ec');
     } else if(type === 'fix'){
       bbText(g, 'TARIQ FIX ENGINE', 92, 50, '700 {s}px Fredoka, sans-serif', '#fff8ec');
-      bbText(g, 'AUTOMATED EXECUTION · MICROSECOND FILLS', 136, 24, '800 {s}px Nunito, sans-serif', '#ff8a73');
+      bbText(g, 'AUTOMATED EXECUTION · LOW-LATENCY FLOW', 136, 24, '800 {s}px Nunito, sans-serif', '#ff8a73');
       [38, 26, 44, 30, 52, 34, 46].forEach((bh, i) => {
         g.fillStyle = i % 2 ? '#ff8a73' : '#7bdcb5';
         g.fillRect(86 + i*50, 218 - bh, 32, bh);
@@ -452,26 +358,26 @@
       g.textAlign = 'center';
     } else if(type === 'greeks'){
       bbText(g, 'Δ Γ Θ ν ρ', 116, 80, '700 {s}px Fredoka, sans-serif', '#ffd166');
-      bbText(g, 'GREEKS PRICED WHILE YOU WAIT', 180, 26, '800 {s}px Nunito, sans-serif', '#fff8ec');
+      bbText(g, 'OPTIONS RISK PRICED IN PRODUCTION', 180, 26, '800 {s}px Nunito, sans-serif', '#fff8ec');
     } else if(type === 'news'){
       g.fillStyle = '#c96f5e'; g.fillRect(30, 38, 452, 46);
       bbText(g, '★ BREAKING NEWS ★', 72, 30, '800 {s}px Nunito, sans-serif', '#fff8ec');
-      bbText(g, 'HASSAN SHIPS ANOTHER', 140, 36, '700 {s}px Fredoka, sans-serif', '#ffd166');
-      bbText(g, 'MODEL TO PRODUCTION', 184, 36, '700 {s}px Fredoka, sans-serif', '#ffd166');
-      bbText(g, 'VOLATILITY UNFAZED', 222, 22, '800 {s}px Nunito, sans-serif', '#fff8ec');
+      bbText(g, 'SIGNALS SHIPPED', 140, 42, '700 {s}px Fredoka, sans-serif', '#ffd166');
+      bbText(g, 'FROM NOTEBOOK TO DESK', 184, 34, '700 {s}px Fredoka, sans-serif', '#ffd166');
+      bbText(g, 'RESEARCH PIPELINE ONLINE', 222, 22, '800 {s}px Nunito, sans-serif', '#fff8ec');
     } else if(type === 'projects'){
-      bbText(g, 'SHIPPED AFTER HOURS', 102, 54, '700 {s}px Fredoka, sans-serif', '#a8c8f5');
+      bbText(g, 'BUILT AFTER HOURS', 102, 54, '700 {s}px Fredoka, sans-serif', '#a8c8f5');
       bbText(g, 'PERSONAL CODING PROJECTS', 152, 26, '800 {s}px Nunito, sans-serif', '#fff8ec');
-      bbText(g, 'BY HASSAN TARIQ · MUSTANG APPROVED', 198, 24, '800 {s}px Nunito, sans-serif', '#ffd166');
+      bbText(g, 'TOOLS · EXPERIMENTS · SMALL APPS', 198, 24, '800 {s}px Nunito, sans-serif', '#ffd166');
     } else if(type === 'hire'){
-      bbText(g, 'GOT ALPHA?', 118, 76, '700 {s}px Fredoka, sans-serif', '#fff8ec');
-      bbText(g, 'HASSAN TARIQ · QUANTITATIVE DEVELOPER', 178, 26, '800 {s}px Nunito, sans-serif', '#7bdcb5');
+      bbText(g, "LET'S BUILD", 118, 76, '700 {s}px Fredoka, sans-serif', '#fff8ec');
+      bbText(g, 'MARKETS · CODE · BIG IDEAS', 178, 26, '800 {s}px Nunito, sans-serif', '#7bdcb5');
     } else if(type === 'cloud'){
-      bbText(g, 'CLOUD NATIVE QUANT', 110, 60, '700 {s}px Fredoka, sans-serif', '#a8c8f5');
-      bbText(g, 'AWS · AZURE · GCP READY', 160, 26, '800 {s}px Nunito, sans-serif', '#fff8ec');
+      bbText(g, 'CLOUD RESEARCH STACK', 110, 54, '700 {s}px Fredoka, sans-serif', '#a8c8f5');
+      bbText(g, 'DATABRICKS · AZURE · AWS READY', 160, 26, '800 {s}px Nunito, sans-serif', '#fff8ec');
     } else if(type === 'ai'){
-      bbText(g, 'AI DRIVEN TRADING', 110, 60, '700 {s}px Fredoka, sans-serif', '#ffd166');
-      bbText(g, 'MACHINE LEARNING IN PRODUCTION', 160, 26, '800 {s}px Nunito, sans-serif', '#fff8ec');
+      bbText(g, 'ML IN PRODUCTION', 110, 60, '700 {s}px Fredoka, sans-serif', '#ffd166');
+      bbText(g, 'SIGNALS · RISK · PRICING MODELS', 160, 26, '800 {s}px Nunito, sans-serif', '#fff8ec');
     }
   }
   ['capital','sharpe','fix','candles','greeks','news','projects','hire','cloud','ai'].forEach(type => {
@@ -1557,7 +1463,6 @@
     let stop = 0; 
     chapters.forEach((c,i) => { if(k > c.t - .03) stop = i; }); 
     dEl.textContent = stop;
-    if(stop === 3) openObBtn.classList.add('visible'); else openObBtn.classList.remove('visible'); 
     finale.classList.toggle('on', scrollT > .965);
 
     chapters.forEach(ch => {
@@ -1632,36 +1537,9 @@
   
   setTimeOfDay(0); 
   
-  const obOverlay = document.getElementById('orderBookOverlay');
-  const openObBtn = document.getElementById('openObBtn');
-  const closeObBtn = document.getElementById('closeObBtn');
-  const obSubmit = document.getElementById('obSubmit');
-  
-  openObBtn.addEventListener('click', () => obOverlay.classList.add('open'));
-  closeObBtn.addEventListener('click', () => obOverlay.classList.remove('open'));
-  
-  obSubmit.addEventListener('click', () => {
-    const side = document.getElementById('obSide').value;
-    const price = parseFloat(document.getElementById('obPrice').value).toFixed(2);
-    const size = document.getElementById('obSize').value;
-    const name = document.getElementById('obName').value || 'Anon';
-    
-    if(isNaN(price) || !size) return alert('Enter valid price and size');
-    
-    const li = document.createElement('li');
-    li.textContent = `${price} | ${size} | ${name}`;
-    
-    if(side === 'bid') {
-      const list = document.getElementById('bidList');
-      list.insertBefore(li, list.firstChild);
-    } else {
-      const list = document.getElementById('askList');
-      list.insertBefore(li, list.firstChild);
-    }
-    
-    document.getElementById('obPrice').value = '';
-    document.getElementById('obSize').value = '';
-    document.getElementById('obName').value = '';
+  document.getElementById('exploreAgainBtn').addEventListener('click', () => {
+    const max = document.body.scrollHeight - innerHeight;
+    scrollTo({ top: max * .88, behavior: reduceMotion ? 'auto' : 'smooth' });
   });
 
 animate(); 
