@@ -183,6 +183,40 @@
 <div id="spacer"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<div id="orderBookOverlay">
+  <div class="ob-card">
+    <div class="ob-header">
+      <h3>HSSN ORDER BOOK (STOP 3)</h3>
+      <button id="closeObBtn">X</button>
+    </div>
+    <div class="ob-content">
+      <div class="ob-bids">
+        <h4>BIDS (Px | Sz | Name)</h4>
+        <ul id="bidList">
+          <li>102.50 | 100 | Alice</li>
+          <li>102.40 | 500 | Bob</li>
+          <li>101.90 | 250 | MM</li>
+        </ul>
+      </div>
+      <div class="ob-asks">
+        <h4>ASKS (Px | Sz | Name)</h4>
+        <ul id="askList">
+          <li>103.10 | 200 | Charlie</li>
+          <li>103.50 | 150 | Dave</li>
+          <li>104.00 | 800 | MM</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ob-form">
+      <select id="obSide"><option value="bid">BID</option><option value="ask">ASK</option></select>
+      <input type="number" id="obPrice" placeholder="Price (e.g. 103.0)" step="0.1">
+      <input type="number" id="obSize" placeholder="Size (e.g. 100)" step="10">
+      <input type="text" id="obName" placeholder="Your Name">
+      <button id="obSubmit">PLACE LIMIT ORDER</button>
+    </div>
+  </div>
+</div>
+<button id="openObBtn">Trade $HSSN</button>
 <script>
 (() => {
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1597,40 +1631,7 @@ animate();
 })();
 </script>
 
-<div id="orderBookOverlay">
-  <div class="ob-card">
-    <div class="ob-header">
-      <h3>HSSN ORDER BOOK (STOP 3)</h3>
-      <button id="closeObBtn">X</button>
-    </div>
-    <div class="ob-content">
-      <div class="ob-bids">
-        <h4>BIDS (Px | Sz | Name)</h4>
-        <ul id="bidList">
-          <li>102.50 | 100 | Alice</li>
-          <li>102.40 | 500 | Bob</li>
-          <li>101.90 | 250 | MM</li>
-        </ul>
-      </div>
-      <div class="ob-asks">
-        <h4>ASKS (Px | Sz | Name)</h4>
-        <ul id="askList">
-          <li>103.10 | 200 | Charlie</li>
-          <li>103.50 | 150 | Dave</li>
-          <li>104.00 | 800 | MM</li>
-        </ul>
-      </div>
-    </div>
-    <div class="ob-form">
-      <select id="obSide"><option value="bid">BID</option><option value="ask">ASK</option></select>
-      <input type="number" id="obPrice" placeholder="Price (e.g. 103.0)" step="0.1">
-      <input type="number" id="obSize" placeholder="Size (e.g. 100)" step="10">
-      <input type="text" id="obName" placeholder="Your Name">
-      <button id="obSubmit">PLACE LIMIT ORDER</button>
-    </div>
-  </div>
-</div>
-<button id="openObBtn">Trade $HSSN</button>
+
 
 </body>
 </html>
