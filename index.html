@@ -151,12 +151,12 @@
 
   @media (max-width: 768px) {
     #hud {
-      flex-wrap: wrap;
+      display: grid; grid-template-columns: 1fr 1fr;
       gap: 0.4rem;
       bottom: 50px;
-      padding: 0 1rem;
+      padding: 0 0.5rem; width: 100%;
     }
-    .pill {
+    .pill { width: 100%; justify-content: center; box-sizing: border-box;
       padding: 0.4rem 0.8rem;
     }
     .pill .value {
@@ -1668,7 +1668,7 @@ animate();
   onScroll();
   
   addEventListener('resize', () => { 
-      const aspect = innerWidth/innerHeight; camera.aspect = aspect; camera.fov = aspect < 1 ? 85 : 62; 
+      const aspect = innerWidth/innerHeight; camera.aspect = aspect; camera.fov = aspect < 1 ? 100 : 62; 
       camera.updateProjectionMatrix(); 
       renderer.setSize(innerWidth, innerHeight); 
   });
