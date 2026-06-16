@@ -436,31 +436,44 @@
 
   /* ============ DIVERSE ARCHITECTURE ============ */
 
-  function attachBillboard(towerGroup, w, h, d, top) {
-    if(Math.random() > 0.45 || h < 24) return; // Only 45% of tall buildings get a sign
+  function attachBillboard(towerGroup, x, z, w, h, d, top) {
+    if(Math.random() > 0.45 || h < 30) return; // Only taller buildings get a sign
     const def = billboardDefs[Math.random() * billboardDefs.length | 0];
     const bw = Math.min(w * 0.92, 15);
     const bh = bw / 2;                 // matches the 2:1 texture, so no squashing
     if(h < bh + 9) return;
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(bw + 1.4, bh + 1.4, .7), navyMat);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(bw + 1.4, bh + 1.4, .9), navyMat);
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(bw, bh), new THREE.MeshBasicMaterial({ map: def.tex }));
-    sign.position.z = .4;
+    sign.position.z = .55;
     frame.add(sign);
 
-    // keep the sign on the base block's wall so it never floats beside a setback tier
-    const yPos = THREE.MathUtils.lerp(bh/2 + 5, h - bh/2 - 2.5, Math.random());
-    const face = Math.random();
-    if(face < 0.25) {
-        frame.position.set(0, yPos, d/2 + .4);
-    } else if(face < 0.5) {
-        frame.position.set(0, yPos, -d/2 - .4);
+    // Keep signs high and aim them toward the flight path instead of a random back wall.
+    const yMin = Math.max(h * .64, bh/2 + 7);
+    const yMax = Math.max(yMin, h - bh/2 - 2.5);
+    const yPos = THREE.MathUtils.lerp(yMin, yMax, .65 + Math.random() * .35);
+    let nearest = pathSamples[0], best = Infinity;
+    for(const p of pathSamples){
+      const dx = p.x - x, dz = p.z - z;
+      const dist = dx*dx + dz*dz;
+      if(dist < best){ best = dist; nearest = p; }
+    }
+    if(Math.sqrt(best) > 145) return;
+
+    const dx = nearest.x - x, dz = nearest.z - z;
+    const standOff = .7;
+    if(Math.abs(dz) >= Math.abs(dx)) {
+      if(dz >= 0) {
+        frame.position.set(0, yPos, d/2 + standOff);
+      } else {
+        frame.position.set(0, yPos, -d/2 - standOff);
         frame.rotation.y = Math.PI;
-    } else if(face < 0.75) {
-        frame.position.set(w/2 + .4, yPos, 0);
-        frame.rotation.y = Math.PI/2;
+      }
+    } else if(dx >= 0) {
+      frame.position.set(w/2 + standOff, yPos, 0);
+      frame.rotation.y = Math.PI/2;
     } else {
-        frame.position.set(-w/2 - .4, yPos, 0);
-        frame.rotation.y = -Math.PI/2;
+      frame.position.set(-w/2 - standOff, yPos, 0);
+      frame.rotation.y = -Math.PI/2;
     }
     towerGroup.add(frame);
   }
@@ -494,7 +507,7 @@
         g.add(ac);
       }
     }
-    attachBillboard(g, w, h, d, top);
+    attachBillboard(g, x, z, w, h, d, top);
     g.position.set(x, 0, z);
     scene.add(g);
   }
