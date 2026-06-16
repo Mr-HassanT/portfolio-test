@@ -148,6 +148,50 @@
   .ob-form button:hover { background: #ffe699; }
   .ob-form button:active { transform: translateY(4px); box-shadow: 0 0 0 var(--navy); }
 
+
+  @media (max-width: 768px) {
+    #hud {
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      bottom: 50px;
+      padding: 0 1rem;
+    }
+    .pill {
+      padding: 0.4rem 0.8rem;
+    }
+    .pill .value {
+      font-size: 0.95rem;
+    }
+    .pill .label {
+      font-size: 0.55rem;
+    }
+    .ob-card {
+      padding: 1.2rem;
+      max-height: 90vh;
+      overflow-y: auto;
+      margin-top: -10vh; /* Shift up a bit */
+    }
+    .ob-header h3 {
+      font-size: 1.2rem;
+    }
+    .ob-content {
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .ob-bids ul, .ob-asks ul {
+      max-height: 120px;
+    }
+    .ob-form {
+      grid-template-columns: 1fr;
+    }
+    #openObBtn {
+      bottom: 120px; /* Above the wrapped HUD */
+      padding: 0.8rem 1.4rem;
+      font-size: 1rem;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -224,7 +268,7 @@
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0xcfeaf7, 0.0024);
 
-  const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, .1, 1100);
+  const initialFov = innerWidth/innerHeight < 1 ? 85 : 62; const camera = new THREE.PerspectiveCamera(initialFov, innerWidth/innerHeight, .1, 1100);
   const renderer = new THREE.WebGLRenderer({ antialias:true });
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -1624,7 +1668,7 @@ animate();
   onScroll();
   
   addEventListener('resize', () => { 
-      camera.aspect = innerWidth/innerHeight; 
+      const aspect = innerWidth/innerHeight; camera.aspect = aspect; camera.fov = aspect < 1 ? 85 : 62; 
       camera.updateProjectionMatrix(); 
       renderer.setSize(innerWidth, innerHeight); 
   });
