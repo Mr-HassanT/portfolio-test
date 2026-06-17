@@ -387,21 +387,24 @@
   const path = new THREE.CatmullRomCurve3([
     new THREE.Vector3(   0, ALT,  150),
     new THREE.Vector3(   0, ALT,  -80),
-    new THREE.Vector3(   0, ALT, -225),
-    new THREE.Vector3(  76, ALT, -258),
-    new THREE.Vector3( 112, ALT, -320),
-    new THREE.Vector3(  16, ALT, -420),
-    new THREE.Vector3(  18, ALT, -488),
-    new THREE.Vector3(-116, ALT, -536),
-    new THREE.Vector3(-112, ALT, -620),
-    new THREE.Vector3(  -8, ALT, -694),
-    new THREE.Vector3(  82, ALT, -815),
+    new THREE.Vector3(  68, ALT, -228),
+    new THREE.Vector3( 116, ALT, -272),
+    new THREE.Vector3( 116, ALT, -332),
+    new THREE.Vector3(  46, ALT, -382),
+    new THREE.Vector3(  22, ALT, -424),
+    new THREE.Vector3(  22, ALT, -486),
+    new THREE.Vector3( -58, ALT, -512),
+    new THREE.Vector3(-124, ALT, -552),
+    new THREE.Vector3(-118, ALT, -616),
+    new THREE.Vector3( -58, ALT, -666),
+    new THREE.Vector3(  -8, ALT, -696),
+    new THREE.Vector3(  54, ALT, -792),
     new THREE.Vector3(  55, ALT,-1100),
     new THREE.Vector3( -45, ALT,-1190),
     new THREE.Vector3( -45, ALT,-1340),
     new THREE.Vector3(   0, ALT,-1440),
     new THREE.Vector3(   0, ALT,-1560),
-  ], false, 'catmullrom', .3);
+  ], false, 'centripetal', .45);
   const N_SAMPLES = 420;
   const pathSamples = path.getPoints(N_SAMPLES);
   const Z_MIN = -1650, Z_MAX = 170;
@@ -411,19 +414,19 @@
     { t:.05, carrier:'blimp', tag:'WELCOME ABOARD', title:"HI, I'M HASSAN", sub:'Muhammad Hassan Tariq · Quantitative Developer · Abu Dhabi', accent:'#e2674f',
       foot:'TICKER: HSSN · SECTOR: QUANT DEV · ANALYST RATING: STRONG BUY',
       lines:['This prototype starts the life-map idea',"with Taylor's University Lakeside Campus:",'lake, bridges, white academic blocks,','glass facades, palms, flags, and a','recognizable red campus sign.'] },
-    { t:.38, carrier:'heli', tag:'STOP 1 · WHERE IT BEGAN', title:"TAYLOR'S UNIVERSITY", sub:'BSc (Hons) Computer Science · AI & Cybersecurity', accent:'#5f7fc0',
+    { t:.50, carrier:'heli', tag:'STOP 1 · WHERE IT BEGAN', title:"TAYLOR'S UNIVERSITY", sub:'BSc (Hons) Computer Science · AI & Cybersecurity', accent:'#5f7fc0',
       foot:'IPO DEC 2022 · PROSPECTUS: FIRST-CLASS FUNDAMENTALS',
       lines:['Graduated December 2022 after a foundation','year at Heriot-Watt University Dubai.','This stop now flies through a campus','mockup instead of generic buildings,','ready for more detail later.'] },
-    { t:.70, carrier:'crane', tag:'STOP 2 · THE BUILDING YEARS', title:'AL RAMZ · 2022–25', sub:'Software Engineer → Quantitative Developer · Algo Desk', accent:'#3f9181',
+    { t:.72, carrier:'crane', tag:'STOP 2 · THE BUILDING YEARS', title:'AL RAMZ · 2022–25', sub:'Software Engineer → Quantitative Developer · Algo Desk', accent:'#3f9181',
       foot:'4 PROMOTIONS IN 3 YEARS · UPTIME 99.97% · DEPLOYS: 217',
       lines:['Joined the Robotics & Algorithms desk and','climbed from Software Engineer to Quant','Developer. Built a proprietary FIX engine','for automated execution, Blazor risk','dashboards, and margin frameworks.'] },
-    { t:.80, carrier:'bank', tag:'STOP 3 · TODAY', title:'IRH · QUANT EQUITIES', sub:'Quantitative Developer · International Resources Holding', accent:'#c98a12',
+    { t:.82, carrier:'bank', tag:'STOP 3 · TODAY', title:'IRH · QUANT EQUITIES', sub:'Quantitative Developer · International Resources Holding', accent:'#c98a12',
       foot:'LIVE SINCE SEP 2025 · MULTI-ASSET ML MODELS · GREEKS COMPUTED DAILY',
       lines:['ML.NET models trading global equities, with','Databricks research pipelines feeding the desk.','Built an OTC options platform pricing Greeks,','vol surfaces and IV contango - fully deployed','and generating signals in production.'] },
-    { t:.82, carrier:'balloon', tag:'STOP 4 · MY TOOLBOX', title:'WHAT I BUILD WITH', sub:'Current stack & future directions', accent:'#e8a93d',
+    { t:.87, carrier:'balloon', tag:'STOP 4 · MY TOOLBOX', title:'WHAT I BUILD WITH', sub:'Current stack & future directions', accent:'#e8a93d',
       foot:'STACK: .NET · PYTHON · DATA · CLOUD',
       lines:['C# · .NET · Blazor · ML.NET · WPF · SQL','Python · Databricks · FIX Protocol','Azure DevOps · PowerShell · MSSQL','Currently evaluating PostgreSQL & AWS','for the next generation of the stack.'] },
-    { t:.90, carrier:'party', tag:'STOP 5 · AFTER HOURS', title:'LIFE OUTSIDE CODE', sub:'Sports, cars, projects & markets', accent:'#a55f9c',
+    { t:.92, carrier:'party', tag:'STOP 5 · AFTER HOURS', title:'LIFE OUTSIDE CODE', sub:'Sports, cars, projects & markets', accent:'#a55f9c',
       foot:'SIDE PROJECTS · SPORTS · MARKETS · CARS',
       lines:['Padel and cricket keep weekends competitive.','The Mustang GT scratches the tuning itch.','Personal coding projects are where I test','new ideas, and the emerging-markets','watchlist stays open in the background.'] },
     { t:.97, carrier:'helipad', tag:'FINAL STOP', title:"LET'S TALK", sub:'Markets · code · big ideas', accent:'#e2674f',
@@ -1061,14 +1064,14 @@
 
     makeCampusBlock(-76, -402, 42, 58, 34, { base:'#edf4f2', glass:'#5aaeba', wideRoof:true });
     makeCampusBlock(-28, -430, 38, 66, 34, { base:'#f5f7f4', glass:'#63b4c0', wideRoof:true });
-    makeCampusBlock(54, -420, 48, 64, 34, { base:'#eef5f3', glass:'#5ba7b2', wideRoof:true });
-    makeCampusBlock(108, -430, 38, 54, 28, { base:'#f4f7f4', glass:'#67b7bf', wideRoof:true });
+    makeCampusBlock(78, -420, 48, 64, 34, { base:'#eef5f3', glass:'#5ba7b2', wideRoof:true });
+    makeCampusBlock(132, -430, 38, 54, 28, { base:'#f4f7f4', glass:'#67b7bf', wideRoof:true });
     makeCampusBlock(72, -686, 66, 48, 36, { base:'#f7f5ef', glass:'#69aeb8', roofSign:true, terraces:true, lakeFace:1 });
     makeCampusBlock(-86, -696, 58, 38, 34, { base:'#eef4ef', glass:'#5ea6b4', terraces:true, lakeFace:1 });
     makeCampusBlock(0, -262, 82, 36, 34, { base:'#f3f8f6', glass:'#6bb7c0', wideRoof:true, frontColumns:true });
 
-    const bridgeA = new THREE.Mesh(new THREE.BoxGeometry(58, 3.2, 8), campusWhite);
-    bridgeA.position.set(12, 28, -430);
+    const bridgeA = new THREE.Mesh(new THREE.BoxGeometry(76, 3.2, 8), campusWhite);
+    bridgeA.position.set(24, 28, -430);
     scene.add(bridgeA);
     const bridgeB = new THREE.Group();
     const bridgeDeck = new THREE.Mesh(new THREE.BoxGeometry(106, 3.2, 8.5), campusWhite);
@@ -2407,13 +2410,9 @@
       }
       const lakeStop = chapters[1];
       if(lakeStop.grp){
-          const lakeFocus = THREE.MathUtils.smoothstep(k, .31, .36) * (1 - THREE.MathUtils.smoothstep(k, .46, .54));
-          if(lakeFocus > 0){
-              lookTarget.lerp(lakeStop.grp.position, lakeFocus * .92);
-              level = Math.max(level, lakeFocus * .7);
-          }
+          const lakeFocus = THREE.MathUtils.smoothstep(k, .45, .50) * (1 - THREE.MathUtils.smoothstep(k, .55, .61));
+          if(lakeFocus > 0) lookTarget.lerp(lakeStop.grp.position, lakeFocus * .55);
       }
-
       if(first){ lookSmooth.copy(lookTarget); first = false; }
       lookSmooth.lerp(lookTarget, reduceMotion ? 1 : .08);
 
