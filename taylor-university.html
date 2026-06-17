@@ -238,7 +238,7 @@
 <div id="ignition">
   <div class="sub">taylor's university lakeside campus draft</div>
   <h1>Welcome to<br>Hassan Campus</h1>
-  <p>A first pass at turning the education chapter into a recognizable campus fly-through: lake, glass academic blocks, white columns, bridges, palms, flags, and the big Taylor's sign.</p>
+  <p>A Taylor's Lakeside Campus model focused on the rectangular lake, railings, close academic blocks, walkways, entrance road network, students, palms, bridges, and the big Taylor's sign.</p>
   <button id="startBtn">Tour Campus</button>
 </div>
 
@@ -777,6 +777,15 @@
   const campusPath = new THREE.MeshLambertMaterial({ color:0xe9e1d0 });
   const campusGrass = new THREE.MeshLambertMaterial({ color:0x8fd39a });
   const campusRoad = new THREE.MeshLambertMaterial({ color:0x6f7a99 });
+  const campusBoardwalk = new THREE.MeshLambertMaterial({ color:0xb78a58 });
+  const campusPlankDark = new THREE.MeshLambertMaterial({ color:0x8b643f });
+  const campusRailMetal = new THREE.MeshLambertMaterial({ color:0xdfe5e2 });
+  const campusRailShadow = new THREE.MeshLambertMaterial({ color:0x9aa7a3 });
+  const campusEdgeStone = new THREE.MeshLambertMaterial({ color:0xc8c4b8 });
+  const campusHedgeMat = new THREE.MeshLambertMaterial({ color:0x4f9a62 });
+  const campusCrosswalk = new THREE.MeshLambertMaterial({ color:0xf7f3ea });
+  const campusShadowGlass = new THREE.MeshLambertMaterial({ color:0x327889, transparent:true, opacity:.42 });
+  const campusWalkers = [];
 
   function campusWindowMaterial(base = '#eff7f5', glass = '#63aeba'){
     const c = document.createElement('canvas'); c.width = 256; c.height = 256;
@@ -861,9 +870,11 @@
         col.position.set(-w/2 + 5 + i*(w-10)/5, h*.43, d/2 + 12);
         grp.add(col);
       }
-      const redSign = new THREE.Mesh(new THREE.PlaneGeometry(w*.62, w*.62/3.5), new THREE.MeshBasicMaterial({ map:taylorsSignTexture(), transparent:true, side:THREE.DoubleSide }));
-      redSign.position.set(0, 4.2, d/2 + 23.2);
-      grp.add(redSign);
+      if(opts.frontSign !== false){
+        const redSign = new THREE.Mesh(new THREE.PlaneGeometry(w*.62, w*.62/3.5), new THREE.MeshBasicMaterial({ map:taylorsSignTexture(), transparent:true, side:THREE.DoubleSide }));
+        redSign.position.set(0, 4.2, d/2 + 23.2);
+        grp.add(redSign);
+      }
     }
 
     if(opts.terraces){
@@ -915,11 +926,28 @@
   }
 
   function makeRoundabout(x, z){
-    const outer = new THREE.Mesh(new THREE.CylinderGeometry(24, 24, .32, 32), campusRoad);
+    const outer = new THREE.Mesh(new THREE.CylinderGeometry(31, 31, .32, 48), campusRoad);
     outer.position.set(x, .12, z);
-    const inner = new THREE.Mesh(new THREE.CylinderGeometry(13, 13, .38, 24), campusGrass);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(25.5, .65, 8, 48), campusCrosswalk);
+    ring.rotation.x = Math.PI/2;
+    ring.position.set(x, .34, z);
+    const inner = new THREE.Mesh(new THREE.CylinderGeometry(14.5, 14.5, .38, 32), campusGrass);
     inner.position.set(x, .17, z);
-    scene.add(outer, inner);
+    const basin = new THREE.Mesh(new THREE.CylinderGeometry(7.8, 8.5, .8, 32), campusEdgeStone);
+    basin.position.set(x, .65, z);
+    const water = new THREE.Mesh(new THREE.CylinderGeometry(6.8, 6.8, .22, 32), campusWater);
+    water.position.set(x, 1.12, z);
+    const jet = new THREE.Mesh(new THREE.CylinderGeometry(.35, .55, 4.5, 10), campusWater);
+    jet.position.set(x, 3.25, z);
+    scene.add(outer, ring, inner, basin, water, jet);
+
+    for(let i=0;i<18;i++){
+      const a = i/18 * Math.PI*2;
+      const hedge = new THREE.Mesh(new THREE.BoxGeometry(5.2, 1.1, 1.7), campusHedgeMat);
+      hedge.position.set(x + Math.cos(a)*18, .7, z + Math.sin(a)*18);
+      hedge.rotation.y = -a;
+      scene.add(hedge);
+    }
   }
 
   function educationBannerTexture(){
@@ -975,139 +1003,362 @@
 
   function makeCampusStudent(){
     const g = new THREE.Group();
-    const shirt = new THREE.Mesh(new THREE.CylinderGeometry(.34,.44,1.18,8), new THREE.MeshLambertMaterial({ color:carColors[(Math.random()*carColors.length)|0] }));
-    shirt.position.y = .9;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(.36,10,10), new THREE.MeshLambertMaterial({ color:skinTones[(Math.random()*skinTones.length)|0] }));
-    head.position.y = 1.82;
-    const bag = new THREE.Mesh(new THREE.BoxGeometry(.18,.72,.5), navyMat);
-    bag.position.set(-.42, 1.05, 0);
-    g.add(shirt, head, bag);
+    const shirtMat = new THREE.MeshLambertMaterial({ color:carColors[(Math.random()*carColors.length)|0] });
+    const pantsMat = new THREE.MeshLambertMaterial({ color:Math.random() < .55 ? 0x23315f : 0x5b6475 });
+    const skinMat = new THREE.MeshLambertMaterial({ color:skinTones[(Math.random()*skinTones.length)|0] });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(.34,.46,1.14,8), shirtMat);
+    body.position.y = 1.05;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.34,10,10), skinMat);
+    head.position.y = 1.86;
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(.35,8,8,0,Math.PI*2,0,Math.PI*.55), new THREE.MeshLambertMaterial({ color:0x2e241c }));
+    hair.position.y = 2.04;
+    const bag = new THREE.Mesh(new THREE.BoxGeometry(.2,.78,.5), navyMat);
+    bag.position.set(-.47, 1.08, -.05);
+    [-.16, .16].forEach(x => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,.72,6), pantsMat);
+      leg.position.set(x, .38, 0);
+      g.add(leg);
+    });
+    [-.43, .43].forEach(x => {
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,.68,6), skinMat);
+      arm.position.set(x, 1.14, 0);
+      arm.rotation.z = x < 0 ? .28 : -.28;
+      g.add(arm);
+    });
+    g.add(body, head, hair, bag);
     return g;
   }
 
-  function makeLakeWalkwayDetails(cx, cz, rx, rz){
-    const railMat = new THREE.MeshLambertMaterial({ color:0xf7f3ea });
-    for(let i=0;i<34;i++){
-      const a = i/34 * Math.PI*2;
-      const x = cx + Math.cos(a)*(rx + 10);
-      const z = cz + Math.sin(a)*(rz + 7);
-      const p = new THREE.Mesh(new THREE.BoxGeometry(13, .5, 5.5), campusPath);
-      p.position.set(x, .26, z);
-      p.rotation.y = Math.atan2(-Math.sin(a)*rz, Math.cos(a)*rx);
-      scene.add(p);
-      if(i % 2 === 0){
-        const rail = new THREE.Mesh(new THREE.BoxGeometry(8, .7, .28), railMat);
-        rail.position.set(0, .88, -2.35);
-        p.add(rail);
-      }
-    }
+  function roundedRectShape(w, d, r){
+    const hw = w/2, hd = d/2;
+    r = Math.min(r, hw - .1, hd - .1);
+    const shape = new THREE.Shape();
+    shape.moveTo(-hw + r, -hd);
+    shape.lineTo(hw - r, -hd);
+    shape.quadraticCurveTo(hw, -hd, hw, -hd + r);
+    shape.lineTo(hw, hd - r);
+    shape.quadraticCurveTo(hw, hd, hw - r, hd);
+    shape.lineTo(-hw + r, hd);
+    shape.quadraticCurveTo(-hw, hd, -hw, hd - r);
+    shape.lineTo(-hw, -hd + r);
+    shape.quadraticCurveTo(-hw, -hd, -hw + r, -hd);
+    return shape;
+  }
 
-    for(let i=0;i<34;i++){
-      const a = i/34 * Math.PI*2 + .05;
+  function makeRoundedRectFlat(cx, cz, w, d, r, mat, y){
+    const mesh = new THREE.Mesh(new THREE.ShapeGeometry(roundedRectShape(w, d, r), 12), mat);
+    mesh.rotation.x = -Math.PI/2;
+    mesh.position.set(cx, y, cz);
+    scene.add(mesh);
+    return mesh;
+  }
+
+  function roundedRectPerimeter(cx, cz, w, d, r, sideSteps = 9, cornerSteps = 6){
+    const pts = [];
+    const hw = w/2, hd = d/2;
+    const add = (x,z) => {
+      const last = pts[pts.length - 1];
+      if(!last || Math.abs(last.x - x) > .01 || Math.abs(last.z - z) > .01) pts.push(new THREE.Vector3(cx + x, 0, cz + z));
+    };
+    for(let i=0;i<=sideSteps;i++) add(-hw + r + (w - 2*r)*i/sideSteps, -hd);
+    for(let i=1;i<=cornerSteps;i++){
+      const a = -Math.PI/2 + i*(Math.PI/2)/cornerSteps;
+      add(hw - r + Math.cos(a)*r, -hd + r + Math.sin(a)*r);
+    }
+    for(let i=1;i<=sideSteps;i++) add(hw, -hd + r + (d - 2*r)*i/sideSteps);
+    for(let i=1;i<=cornerSteps;i++){
+      const a = i*(Math.PI/2)/cornerSteps;
+      add(hw - r + Math.cos(a)*r, hd - r + Math.sin(a)*r);
+    }
+    for(let i=1;i<=sideSteps;i++) add(hw - r - (w - 2*r)*i/sideSteps, hd);
+    for(let i=1;i<=cornerSteps;i++){
+      const a = Math.PI/2 + i*(Math.PI/2)/cornerSteps;
+      add(-hw + r + Math.cos(a)*r, hd - r + Math.sin(a)*r);
+    }
+    for(let i=1;i<=sideSteps;i++) add(-hw, hd - r - (d - 2*r)*i/sideSteps);
+    for(let i=1;i<=cornerSteps;i++){
+      const a = Math.PI + i*(Math.PI/2)/cornerSteps;
+      add(-hw + r + Math.cos(a)*r, -hd + r + Math.sin(a)*r);
+    }
+    return pts;
+  }
+
+  function makeSegmentBox(p1, p2, y, h, d, mat){
+    const dx = p2.x - p1.x, dz = p2.z - p1.z;
+    const len = Math.hypot(dx, dz);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(len, h, d), mat);
+    mesh.position.set((p1.x + p2.x)/2, y, (p1.z + p2.z)/2);
+    mesh.rotation.y = -Math.atan2(dz, dx);
+    scene.add(mesh);
+    return mesh;
+  }
+
+  function makeLakeRail(points){
+    for(let i=0;i<points.length;i++){
+      const p = points[i];
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(.14,.18,1.72,8), campusRailMetal);
+      post.position.set(p.x, .94, p.z);
+      scene.add(post);
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(.24,8,8), campusRailShadow);
+      cap.position.set(p.x, 1.82, p.z);
+      scene.add(cap);
+    }
+    for(let i=0;i<points.length;i++){
+      const p1 = points[i], p2 = points[(i + 1) % points.length];
+      makeSegmentBox(p1, p2, 1.72, .16, .18, campusRailMetal);
+      makeSegmentBox(p1, p2, 1.16, .13, .15, campusRailShadow);
+    }
+  }
+
+  function prepareCampusRoute(points, closed = true){
+    const lengths = [];
+    let total = 0;
+    const max = closed ? points.length : points.length - 1;
+    for(let i=0;i<max;i++){
+      const a = points[i], b = points[(i + 1) % points.length];
+      const len = a.distanceTo(b);
+      lengths.push(len);
+      total += len;
+    }
+    return { points, lengths, total, closed };
+  }
+
+  function sampleCampusRoute(route, u){
+    const dist = ((u % 1) + 1) % 1 * route.total;
+    let acc = 0;
+    for(let i=0;i<route.lengths.length;i++){
+      const len = route.lengths[i];
+      if(acc + len >= dist){
+        const a = route.points[i], b = route.points[(i + 1) % route.points.length];
+        const t = len ? (dist - acc) / len : 0;
+        return {
+          pos: new THREE.Vector3().lerpVectors(a, b, t),
+          dir: new THREE.Vector3().subVectors(b, a).normalize()
+        };
+      }
+      acc += len;
+    }
+    const last = route.points[route.points.length - 1];
+    return { pos:last.clone(), dir:new THREE.Vector3(0,0,1) };
+  }
+
+  function addCampusWalkers(route, count, speedMin = 4.5, speedMax = 9){
+    for(let i=0;i<count;i++){
       const student = makeCampusStudent();
-      student.position.set(cx + Math.cos(a)*(rx + 10 + (Math.random()-.5)*2.5), 0, cz + Math.sin(a)*(rz + 7 + (Math.random()-.5)*2.5));
-      student.rotation.y = Math.atan2(-Math.sin(a)*rz, Math.cos(a)*rx) + (Math.random()-.5)*.5;
+      const u = Math.random();
+      const sample = sampleCampusRoute(route, u);
+      student.position.copy(sample.pos);
+      student.rotation.y = Math.atan2(sample.dir.x, sample.dir.z);
+      student.userData = {
+        route,
+        u,
+        speed: speedMin + Math.random()*(speedMax - speedMin),
+        phase: Math.random()*Math.PI*2
+      };
+      campusWalkers.push(student);
       scene.add(student);
     }
+  }
 
-    for(let i=0;i<22;i++){
-      const a = i/22 * Math.PI*2 + .12;
+  function makeBoardwalkPlanks(x, z, w, d, rot = 0, axis = 'x'){
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(w, .42, d), campusBoardwalk);
+    deck.position.set(x, .24, z);
+    deck.rotation.y = rot;
+    scene.add(deck);
+    const count = axis === 'x' ? Math.floor(w/5) : Math.floor(d/5);
+    for(let i=0;i<count;i++){
+      const line = axis === 'x'
+        ? new THREE.Mesh(new THREE.BoxGeometry(.16, .05, d + .1), campusPlankDark)
+        : new THREE.Mesh(new THREE.BoxGeometry(w + .1, .05, .16), campusPlankDark);
+      line.position.set(axis === 'x' ? -w/2 + i*5 : 0, .48, axis === 'x' ? 0 : -d/2 + i*5);
+      deck.add(line);
+    }
+  }
+
+  function makeLakesideTerraces(cx, cz, lakeW, lakeD){
+    for(let i=0;i<7;i++){
+      const step = new THREE.Mesh(new THREE.BoxGeometry(lakeW - 18 - i*7, .42, 4.2), campusEdgeStone);
+      step.position.set(cx - 10, .22 + i*.08, cz - lakeD/2 - 12 - i*4.6);
+      scene.add(step);
+    }
+    for(let i=0;i<5;i++){
+      const planter = new THREE.Mesh(new THREE.BoxGeometry(9, 1.1, 3.6), campusHedgeMat);
+      planter.position.set(cx - 72 + i*35, .72, cz - lakeD/2 - 39);
+      scene.add(planter);
+    }
+  }
+
+  function makeLakeWalkwayDetails(cx, cz, lakeW, lakeD, cornerR){
+    makeRoundedRectFlat(cx, cz, lakeW + 31, lakeD + 25, cornerR + 11, campusPath, .02);
+    makeRoundedRectFlat(cx, cz, lakeW + 11, lakeD + 9, cornerR + 5, campusEdgeStone, .045);
+
+    makeBoardwalkPlanks(cx + lakeW/2 + 13.5, cz + 1, 10, lakeD + 28, 0, 'z');
+    makeBoardwalkPlanks(cx - 7, cz + lakeD/2 + 12.2, lakeW + 26, 8.5, 0, 'x');
+    makeLakesideTerraces(cx, cz, lakeW, lakeD);
+
+    const railPts = roundedRectPerimeter(cx, cz, lakeW + 4, lakeD + 4, cornerR + 2, 10, 7);
+    makeLakeRail(railPts);
+
+    for(let i=0;i<18;i++){
+      const p1 = railPts[(i*4) % railPts.length];
+      const p2 = railPts[(i*4 + 2) % railPts.length];
+      const bench = new THREE.Mesh(new THREE.BoxGeometry(5.2, .45, 1.15), benchMat);
+      bench.position.set((p1.x + p2.x)/2 + (Math.random()-.5)*3, .72, (p1.z + p2.z)/2 + (Math.random()-.5)*3);
+      bench.rotation.y = -Math.atan2(p2.z - p1.z, p2.x - p1.x);
+      scene.add(bench);
+    }
+
+    const loopRoute = prepareCampusRoute(roundedRectPerimeter(cx, cz, lakeW + 34, lakeD + 30, cornerR + 13, 12, 8), true);
+    addCampusWalkers(loopRoute, 34, 3.4, 6.2);
+    const crossRoute = prepareCampusRoute([
+      new THREE.Vector3(-116,0,-338), new THREE.Vector3(-86,0,-413), new THREE.Vector3(-91,0,-506),
+      new THREE.Vector3(-72,0,-607), new THREE.Vector3(-14,0,-641), new THREE.Vector3(78,0,-627),
+      new THREE.Vector3(106,0,-544), new THREE.Vector3(96,0,-461), new THREE.Vector3(42,0,-414)
+    ], true);
+    addCampusWalkers(crossRoute, 22, 4.2, 7.4);
+
+    for(let i=0;i<34;i++){
+      const a = i/34 * Math.PI*2 + .12;
       const tr = makeTree();
-      tr.scale.setScalar(.72 + Math.random()*.35);
-      tr.position.set(cx + Math.cos(a)*(rx + 20 + Math.random()*7), 0, cz + Math.sin(a)*(rz + 13 + Math.random()*5));
+      tr.scale.setScalar(.65 + Math.random()*.45);
+      const outward = i % 2 ? 25 : 18;
+      tr.position.set(cx + Math.cos(a)*(lakeW/2 + outward + Math.random()*5), 0, cz + Math.sin(a)*(lakeD/2 + outward*.62 + Math.random()*4));
       scene.add(tr);
     }
   }
 
   function makeCampusLake(){
-    const cx = 0, cz = -536, rx = 102, rz = 50;
-    const lake = new THREE.Mesh(new THREE.CircleGeometry(118, 56), campusWater);
-    lake.scale.set(rx/118, rz/118, 1);
-    lake.rotation.x = -Math.PI/2;
-    lake.position.set(cx, .03, cz);
-    scene.add(lake);
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(118, 1.1, 8, 80), campusPath);
-    rim.scale.set(rx/118, rz/118, 1);
-    rim.rotation.x = -Math.PI/2;
-    rim.position.set(cx, .08, cz);
-    scene.add(rim);
-    const outerWalk = new THREE.Mesh(new THREE.TorusGeometry(118, 3.4, 8, 96), campusPath);
-    outerWalk.scale.set((rx + 9)/118, (rz + 7)/118, 1);
-    outerWalk.rotation.x = -Math.PI/2;
-    outerWalk.position.set(cx, .12, cz);
-    scene.add(outerWalk);
-    makeLakeWalkwayDetails(cx, cz, rx, rz);
+    const cx = 0, cz = -542, lakeW = 174, lakeD = 88, cornerR = 16;
+    makeLakeWalkwayDetails(cx, cz, lakeW, lakeD, cornerR);
+    const lake = makeRoundedRectFlat(cx, cz, lakeW, lakeD, cornerR, campusWater, .08);
+    lake.renderOrder = 2;
 
     for(let i=0;i<7;i++){
+      const shine = new THREE.Mesh(new THREE.PlaneGeometry(24 + i*2, 2.2), new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:.16, side:THREE.DoubleSide }));
+      shine.rotation.x = -Math.PI/2;
+      shine.rotation.z = -.18;
+      shine.position.set(-62 + i*21, .13, cz - 24 + Math.sin(i)*18);
+      scene.add(shine);
+    }
+
+    for(let i=0;i<6;i++){
       const duck = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.SphereGeometry(.8, 8, 8), creamMat);
+      const body = new THREE.Mesh(new THREE.SphereGeometry(.72, 8, 8), creamMat);
       body.scale.set(1.25,.72,.85);
-      const head = new THREE.Mesh(new THREE.SphereGeometry(.42, 8, 8), creamMat);
-      head.position.set(.82,.42,.1);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(.38, 8, 8), creamMat);
+      head.position.set(.72,.4,.1);
       duck.add(body, head);
-      duck.position.set(-38 + i*13, .55, cz + Math.sin(i)*16);
+      duck.position.set(-48 + i*18, .55, cz - 8 + Math.sin(i)*20);
       duck.rotation.y = Math.sin(i)*.8;
       scene.add(duck);
     }
   }
 
+  function addCampusRedFins(grp, w, h, d, face = 1){
+    [-.18, .08].forEach(offset => {
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(2.8, h*.82, .9), campusRed);
+      fin.position.set(w*offset, h*.52, face*(d/2 + .65));
+      grp.add(fin);
+    });
+    for(let y=9;y<h-4;y+=12){
+      const slit = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.8, .95), navyMat);
+      slit.position.set(w*.27, y, face*(d/2 + .75));
+      grp.add(slit);
+    }
+  }
+
+  function makeEntranceLetters(x, z){
+    const grp = new THREE.Group();
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(58, 16.7), new THREE.MeshBasicMaterial({ map:taylorsSignTexture(), transparent:true, side:THREE.DoubleSide }));
+    sign.position.y = 6.7;
+    const base = new THREE.Mesh(new THREE.BoxGeometry(66, 1.1, 4.2), campusEdgeStone);
+    base.position.y = .55;
+    grp.add(base, sign);
+    grp.position.set(x, 0, z);
+    grp.rotation.y = Math.PI*.02;
+    scene.add(grp);
+  }
+
+  function makeCampusCrosswalk(x, z, w, d, rot = 0){
+    const g = new THREE.Group();
+    for(let i=0;i<7;i++){
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(w, .05, d/10), campusCrosswalk);
+      stripe.position.set(0, .27, -d/2 + 1 + i*d/7);
+      g.add(stripe);
+    }
+    g.position.set(x, 0, z);
+    g.rotation.y = rot;
+    scene.add(g);
+  }
+
   function makeTaylorCampus(){
-    makeRoadSegment(0, -196, 132, 11, 0);
-    makeRoundabout(0, -196);
-    makeRoadSegment(-154, -520, 15, 610, 0);
-    makeRoadSegment(154, -520, 15, 610, 0);
-    makeRoadSegment(0, -830, 320, 14, 0);
+    makeRoadSegment(0, -205, 172, 13, 0);
+    makeRoadSegment(0, -284, 13, 126, 0);
+    makeRoundabout(0, -205);
+    makeRoadSegment(-154, -535, 14, 620, 0);
+    makeRoadSegment(154, -535, 14, 620, 0);
+    makeRoadSegment(0, -806, 330, 14, 0);
+    makeCampusCrosswalk(-74, -205, 20, 28, Math.PI/2);
+    makeCampusCrosswalk(74, -205, 20, 28, Math.PI/2);
+    makeCampusCrosswalk(0, -284, 22, 30, 0);
 
+    const entrancePlaza = makeRoundedRectFlat(0, -292, 116, 56, 13, campusPath, .035);
+    entrancePlaza.rotation.z = 0;
+    makeEntranceLetters(-42, -246);
     makeCampusLake();
-    makeWalkway(0, -350, 150, 7, Math.PI*.05);
-    makeWalkway(0, -680, 168, 7, -Math.PI*.04);
 
-    makeCampusBlock(-76, -402, 42, 58, 34, { base:'#edf4f2', glass:'#5aaeba', wideRoof:true });
-    makeCampusBlock(-28, -430, 38, 66, 34, { base:'#f5f7f4', glass:'#63b4c0', wideRoof:true });
-    makeCampusBlock(78, -420, 48, 64, 34, { base:'#eef5f3', glass:'#5ba7b2', wideRoof:true });
-    makeCampusBlock(132, -430, 38, 54, 28, { base:'#f4f7f4', glass:'#67b7bf', wideRoof:true });
-    makeCampusBlock(72, -686, 66, 48, 36, { base:'#f7f5ef', glass:'#69aeb8', roofSign:true, terraces:true, lakeFace:1 });
-    makeCampusBlock(-86, -696, 58, 38, 34, { base:'#eef4ef', glass:'#5ea6b4', terraces:true, lakeFace:1 });
-    makeCampusBlock(0, -262, 82, 36, 34, { base:'#f3f8f6', glass:'#6bb7c0', wideRoof:true, frontColumns:true });
+    makeWalkway(0, -383, 138, 8, 0);
+    makeWalkway(0, -646, 168, 7, 0);
+    makeWalkway(-106, -536, 9, 198, 0);
+    makeWalkway(108, -536, 9, 198, 0);
 
-    const bridgeA = new THREE.Mesh(new THREE.BoxGeometry(76, 3.2, 8), campusWhite);
-    bridgeA.position.set(24, 28, -430);
-    scene.add(bridgeA);
-    const bridgeB = new THREE.Group();
-    const bridgeDeck = new THREE.Mesh(new THREE.BoxGeometry(106, 3.2, 8.5), campusWhite);
-    const bridgeGlassA = new THREE.Mesh(new THREE.BoxGeometry(104, 2.2, .55), campusDarkGlass);
-    bridgeGlassA.position.set(0, 2.7, -4.55);
+    const hall = makeCampusBlock(0, -340, 96, 34, 42, { base:'#f3f8f6', glass:'#6bb7c0', wideRoof:true, frontColumns:true, frontSign:false });
+    hall.rotation.y = 0;
+    makeCampusBlock(-112, -520, 44, 58, 132, { base:'#edf4f2', glass:'#5aaeba', wideRoof:true, terraces:true, lakeFace:-1 });
+    makeCampusBlock(118, -520, 46, 64, 128, { base:'#eef5f3', glass:'#5ba7b2', wideRoof:true, terraces:true, lakeFace:-1 });
+    const redTower = makeCampusBlock(154, -362, 34, 74, 38, { base:'#f7f5ef', glass:'#7abeca', wideRoof:true });
+    addCampusRedFins(redTower, 34, 74, 38, 1);
+    makeCampusBlock(72, -646, 62, 52, 42, { base:'#f7f5ef', glass:'#69aeb8', roofSign:true, terraces:true, lakeFace:1 });
+    makeCampusBlock(-68, -646, 58, 46, 42, { base:'#eef4ef', glass:'#5ea6b4', terraces:true, lakeFace:1 });
+    makeCampusBlock(0, -724, 78, 44, 38, { base:'#f4f7f4', glass:'#67b7bf', wideRoof:true });
+
+    const bridgeA = new THREE.Group();
+    const bridgeDeck = new THREE.Mesh(new THREE.BoxGeometry(206, 3.2, 8.5), campusWhite);
+    const bridgeGlassA = new THREE.Mesh(new THREE.BoxGeometry(204, 2.1, .55), campusDarkGlass);
+    bridgeGlassA.position.set(0, 2.55, -4.55);
     const bridgeGlassB = bridgeGlassA.clone();
     bridgeGlassB.position.z = 4.55;
-    bridgeB.add(bridgeDeck, bridgeGlassA, bridgeGlassB);
-    bridgeB.position.set(-6, 24, -684);
-    scene.add(bridgeB);
+    bridgeA.add(bridgeDeck, bridgeGlassA, bridgeGlassB);
+    bridgeA.position.set(8, 25, -430);
+    scene.add(bridgeA);
 
-    const plaza = new THREE.Mesh(new THREE.CircleGeometry(38, 32), campusPath);
+    const plaza = new THREE.Mesh(new THREE.CircleGeometry(28, 36), campusGrass);
     plaza.rotation.x = -Math.PI/2;
-    plaza.position.set(0, .07, -244);
+    plaza.position.set(0, .09, -292);
     scene.add(plaza);
-    const lawn = new THREE.Mesh(new THREE.CircleGeometry(26, 24), campusGrass);
-    lawn.rotation.x = -Math.PI/2;
-    lawn.position.set(0, .09, -244);
-    scene.add(lawn);
+    makeFlagRow(-48, -251, 9, 12);
 
-    makeFlagRow(-42, -222, 8, 12);
+    const frontRoute = prepareCampusRoute([
+      new THREE.Vector3(-75,0,-232), new THREE.Vector3(-34,0,-248), new THREE.Vector3(32,0,-260),
+      new THREE.Vector3(68,0,-306), new THREE.Vector3(42,0,-368), new THREE.Vector3(-42,0,-372),
+      new THREE.Vector3(-86,0,-314)
+    ], true);
+    addCampusWalkers(frontRoute, 18, 4, 7);
 
-    [[-128,-360],[-122,-475],[-122,-610],[-112,-750],[128,-360],[138,-510],[124,-640],[112,-742],[-54,-238],[54,-238]].forEach(([x,z]) => {
+    [[-132,-355],[-135,-442],[-134,-616],[-122,-728],[132,-420],[136,-548],[124,-690],[-58,-246],[58,-246],[0,-752]].forEach(([x,z]) => {
       for(let i=0;i<5;i++){
         const tr = makeTree();
-        tr.position.set(x + (Math.random()-.5)*14, 0, z + (Math.random()-.5)*18);
+        tr.position.set(x + (Math.random()-.5)*15, 0, z + (Math.random()-.5)*18);
         scene.add(tr);
       }
     });
 
-    for(let i=0;i<26;i++){
-      const bench = new THREE.Mesh(new THREE.BoxGeometry(5, .55, 1.2), benchMat);
-      const angle = i/26 * Math.PI*2;
-      bench.position.set(Math.cos(angle)*126, .65, -520 + Math.sin(angle)*60);
-      bench.rotation.y = -angle;
-      scene.add(bench);
+    for(let i=0;i<22;i++){
+      const hedge = new THREE.Mesh(new THREE.BoxGeometry(9, 1.1, 2.2), campusHedgeMat);
+      const side = i < 11 ? -1 : 1;
+      hedge.position.set(side*(67 + Math.random()*8), .7, -268 - (i%11)*10);
+      hedge.rotation.y = side > 0 ? Math.PI*.08 : -Math.PI*.08;
+      scene.add(hedge);
     }
   }
 
@@ -2522,6 +2773,13 @@
           p.position.y = Math.abs(Math.sin(t*4 + p.userData.phase)) * .12;
           if(p.position.z > Z_MAX) p.position.z = Z_MIN;
           if(p.position.z < Z_MIN) p.position.z = Z_MAX;
+      });
+      campusWalkers.forEach(p => {
+          const u = p.userData;
+          u.u = (u.u + (u.speed * dt / Math.max(1, u.route.total))) % 1;
+          const sample = sampleCampusRoute(u.route, u.u);
+          p.position.set(sample.pos.x, Math.abs(Math.sin(t*5.2 + u.phase)) * .08, sample.pos.z);
+          p.rotation.y = Math.atan2(sample.dir.x, sample.dir.z);
       });
       cycles.forEach(c => {
           c.position.z += c.userData.dir * c.userData.speed * dt;
