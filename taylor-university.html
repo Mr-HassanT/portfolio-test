@@ -388,10 +388,12 @@
     new THREE.Vector3(   0, ALT,  150),
     new THREE.Vector3(   0, ALT,  -80),
     new THREE.Vector3(   0, ALT, -225),
-    new THREE.Vector3( 145, ALT, -360),
-    new THREE.Vector3( 145, ALT, -520),
-    new THREE.Vector3( 145, ALT, -665),
-    new THREE.Vector3(  70, ALT, -850),
+    new THREE.Vector3(  96, ALT, -330),
+    new THREE.Vector3( 178, ALT, -452),
+    new THREE.Vector3( 168, ALT, -548),
+    new THREE.Vector3(  46, ALT, -630),
+    new THREE.Vector3(  -8, ALT, -704),
+    new THREE.Vector3(  92, ALT, -790),
     new THREE.Vector3(  55, ALT,-1100),
     new THREE.Vector3( -45, ALT,-1190),
     new THREE.Vector3( -45, ALT,-1340),
@@ -407,13 +409,13 @@
     { t:.05, carrier:'blimp', tag:'WELCOME ABOARD', title:"HI, I'M HASSAN", sub:'Muhammad Hassan Tariq · Quantitative Developer · Abu Dhabi', accent:'#e2674f',
       foot:'TICKER: HSSN · SECTOR: QUANT DEV · ANALYST RATING: STRONG BUY',
       lines:['This prototype starts the life-map idea',"with Taylor's University Lakeside Campus:",'lake, bridges, white academic blocks,','glass facades, palms, flags, and a','recognizable red campus sign.'] },
-    { t:.24, carrier:'heli', tag:'STOP 1 · WHERE IT BEGAN', title:"TAYLOR'S UNIVERSITY", sub:'BSc (Hons) Computer Science · AI & Cybersecurity', accent:'#5f7fc0',
+    { t:.36, carrier:'heli', tag:'STOP 1 · WHERE IT BEGAN', title:"TAYLOR'S UNIVERSITY", sub:'BSc (Hons) Computer Science · AI & Cybersecurity', accent:'#5f7fc0',
       foot:'IPO DEC 2022 · PROSPECTUS: FIRST-CLASS FUNDAMENTALS',
       lines:['Graduated December 2022 after a foundation','year at Heriot-Watt University Dubai.','This stop now flies through a campus','mockup instead of generic buildings,','ready for more detail later.'] },
-    { t:.44, carrier:'crane', tag:'STOP 2 · THE BUILDING YEARS', title:'AL RAMZ · 2022–25', sub:'Software Engineer → Quantitative Developer · Algo Desk', accent:'#3f9181',
+    { t:.58, carrier:'crane', tag:'STOP 2 · THE BUILDING YEARS', title:'AL RAMZ · 2022–25', sub:'Software Engineer → Quantitative Developer · Algo Desk', accent:'#3f9181',
       foot:'4 PROMOTIONS IN 3 YEARS · UPTIME 99.97% · DEPLOYS: 217',
       lines:['Joined the Robotics & Algorithms desk and','climbed from Software Engineer to Quant','Developer. Built a proprietary FIX engine','for automated execution, Blazor risk','dashboards, and margin frameworks.'] },
-    { t:.64, carrier:'bank', tag:'STOP 3 · TODAY', title:'IRH · QUANT EQUITIES', sub:'Quantitative Developer · International Resources Holding', accent:'#c98a12',
+    { t:.70, carrier:'bank', tag:'STOP 3 · TODAY', title:'IRH · QUANT EQUITIES', sub:'Quantitative Developer · International Resources Holding', accent:'#c98a12',
       foot:'LIVE SINCE SEP 2025 · MULTI-ASSET ML MODELS · GREEKS COMPUTED DAILY',
       lines:['ML.NET models trading global equities, with','Databricks research pipelines feeding the desk.','Built an OTC options platform pricing Greeks,','vol surfaces and IV contango - fully deployed','and generating signals in production.'] },
     { t:.82, carrier:'balloon', tag:'STOP 4 · MY TOOLBOX', title:'WHAT I BUILD WITH', sub:'Current stack & future directions', accent:'#e8a93d',
@@ -839,9 +841,9 @@
     grp.add(roof);
 
     if(opts.roofSign){
-      const sign = new THREE.Mesh(new THREE.PlaneGeometry(w*.82, w*.82/3.5), new THREE.MeshBasicMaterial({ map:taylorsSignTexture(), transparent:true, side:THREE.DoubleSide }));
-      sign.position.set(0, h + 5.2, -d/2 - .9);
-      sign.rotation.y = Math.PI;
+      const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map:taylorsSignTexture(), transparent:true, depthTest:false }));
+      sign.scale.set(w*.64, w*.64/3.5, 1);
+      sign.position.set(0, h + 7.1, -d/2 - 3.4);
       grp.add(sign);
     }
 
@@ -913,9 +915,6 @@
     const inner = new THREE.Mesh(new THREE.CylinderGeometry(13, 13, .38, 24), campusGrass);
     inner.position.set(x, .17, z);
     scene.add(outer, inner);
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(16, 5), new THREE.MeshBasicMaterial({ map:taylorsSignTexture(), transparent:true, side:THREE.DoubleSide }));
-    sign.position.set(x, 7, z - 12);
-    scene.add(sign);
   }
 
   function educationBannerTexture(){
@@ -969,17 +968,70 @@
     }
   }
 
+  function makeCampusStudent(){
+    const g = new THREE.Group();
+    const shirt = new THREE.Mesh(new THREE.CylinderGeometry(.34,.44,1.18,8), new THREE.MeshLambertMaterial({ color:carColors[(Math.random()*carColors.length)|0] }));
+    shirt.position.y = .9;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.36,10,10), new THREE.MeshLambertMaterial({ color:skinTones[(Math.random()*skinTones.length)|0] }));
+    head.position.y = 1.82;
+    const bag = new THREE.Mesh(new THREE.BoxGeometry(.18,.72,.5), navyMat);
+    bag.position.set(-.42, 1.05, 0);
+    g.add(shirt, head, bag);
+    return g;
+  }
+
+  function makeLakeWalkwayDetails(cx, cz, rx, rz){
+    const railMat = new THREE.MeshLambertMaterial({ color:0xf7f3ea });
+    for(let i=0;i<34;i++){
+      const a = i/34 * Math.PI*2;
+      const x = cx + Math.cos(a)*(rx + 10);
+      const z = cz + Math.sin(a)*(rz + 7);
+      const p = new THREE.Mesh(new THREE.BoxGeometry(13, .5, 5.5), campusPath);
+      p.position.set(x, .26, z);
+      p.rotation.y = Math.atan2(-Math.sin(a)*rz, Math.cos(a)*rx);
+      scene.add(p);
+      if(i % 2 === 0){
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(8, .7, .28), railMat);
+        rail.position.set(0, .88, -2.35);
+        p.add(rail);
+      }
+    }
+
+    for(let i=0;i<34;i++){
+      const a = i/34 * Math.PI*2 + .05;
+      const student = makeCampusStudent();
+      student.position.set(cx + Math.cos(a)*(rx + 10 + (Math.random()-.5)*2.5), 0, cz + Math.sin(a)*(rz + 7 + (Math.random()-.5)*2.5));
+      student.rotation.y = Math.atan2(-Math.sin(a)*rz, Math.cos(a)*rx) + (Math.random()-.5)*.5;
+      scene.add(student);
+    }
+
+    for(let i=0;i<22;i++){
+      const a = i/22 * Math.PI*2 + .12;
+      const tr = makeTree();
+      tr.scale.setScalar(.72 + Math.random()*.35);
+      tr.position.set(cx + Math.cos(a)*(rx + 20 + Math.random()*7), 0, cz + Math.sin(a)*(rz + 13 + Math.random()*5));
+      scene.add(tr);
+    }
+  }
+
   function makeCampusLake(){
+    const cx = 0, cz = -536, rx = 102, rz = 50;
     const lake = new THREE.Mesh(new THREE.CircleGeometry(118, 56), campusWater);
-    lake.scale.set(1.15, .54, 1);
+    lake.scale.set(rx/118, rz/118, 1);
     lake.rotation.x = -Math.PI/2;
-    lake.position.set(0, .03, -520);
+    lake.position.set(cx, .03, cz);
     scene.add(lake);
     const rim = new THREE.Mesh(new THREE.TorusGeometry(118, 1.1, 8, 80), campusPath);
-    rim.scale.set(1.15, .54, 1);
+    rim.scale.set(rx/118, rz/118, 1);
     rim.rotation.x = -Math.PI/2;
-    rim.position.set(0, .08, -520);
+    rim.position.set(cx, .08, cz);
     scene.add(rim);
+    const outerWalk = new THREE.Mesh(new THREE.TorusGeometry(118, 3.4, 8, 96), campusPath);
+    outerWalk.scale.set((rx + 9)/118, (rz + 7)/118, 1);
+    outerWalk.rotation.x = -Math.PI/2;
+    outerWalk.position.set(cx, .12, cz);
+    scene.add(outerWalk);
+    makeLakeWalkwayDetails(cx, cz, rx, rz);
 
     for(let i=0;i<7;i++){
       const duck = new THREE.Group();
@@ -988,7 +1040,7 @@
       const head = new THREE.Mesh(new THREE.SphereGeometry(.42, 8, 8), creamMat);
       head.position.set(.82,.42,.1);
       duck.add(body, head);
-      duck.position.set(-42 + i*14, .55, -520 + Math.sin(i)*18);
+      duck.position.set(-38 + i*13, .55, cz + Math.sin(i)*16);
       duck.rotation.y = Math.sin(i)*.8;
       scene.add(duck);
     }
@@ -1002,24 +1054,28 @@
     makeRoadSegment(0, -830, 320, 14, 0);
 
     makeCampusLake();
-    makeEducationLakeBanner();
-    makeWalkway(0, -520, 210, 9, 0);
     makeWalkway(0, -350, 150, 7, Math.PI*.05);
     makeWalkway(0, -680, 168, 7, -Math.PI*.04);
 
     makeCampusBlock(-76, -402, 42, 58, 34, { base:'#edf4f2', glass:'#5aaeba', wideRoof:true });
     makeCampusBlock(-28, -430, 38, 66, 34, { base:'#f5f7f4', glass:'#63b4c0', wideRoof:true });
-    makeCampusBlock(54, -428, 48, 64, 36, { base:'#eef5f3', glass:'#5ba7b2', wideRoof:true });
-    makeCampusBlock(105, -472, 40, 54, 30, { base:'#f4f7f4', glass:'#67b7bf', wideRoof:true });
-    makeCampusBlock(72, -672, 66, 48, 36, { base:'#f7f5ef', glass:'#69aeb8', roofSign:true, terraces:true, lakeFace:1 });
-    makeCampusBlock(-86, -692, 58, 38, 34, { base:'#eef4ef', glass:'#5ea6b4', terraces:true, lakeFace:1 });
+    makeCampusBlock(54, -420, 48, 64, 34, { base:'#eef5f3', glass:'#5ba7b2', wideRoof:true });
+    makeCampusBlock(108, -430, 38, 54, 28, { base:'#f4f7f4', glass:'#67b7bf', wideRoof:true });
+    makeCampusBlock(72, -686, 66, 48, 36, { base:'#f7f5ef', glass:'#69aeb8', roofSign:true, terraces:true, lakeFace:1 });
+    makeCampusBlock(-86, -696, 58, 38, 34, { base:'#eef4ef', glass:'#5ea6b4', terraces:true, lakeFace:1 });
     makeCampusBlock(0, -262, 82, 36, 34, { base:'#f3f8f6', glass:'#6bb7c0', wideRoof:true, frontColumns:true });
 
     const bridgeA = new THREE.Mesh(new THREE.BoxGeometry(58, 3.2, 8), campusWhite);
     bridgeA.position.set(12, 28, -430);
     scene.add(bridgeA);
-    const bridgeB = new THREE.Mesh(new THREE.BoxGeometry(54, 3, 7), campusWhite);
-    bridgeB.position.set(-18, 24, -672);
+    const bridgeB = new THREE.Group();
+    const bridgeDeck = new THREE.Mesh(new THREE.BoxGeometry(106, 3.2, 8.5), campusWhite);
+    const bridgeGlassA = new THREE.Mesh(new THREE.BoxGeometry(104, 2.2, .55), campusDarkGlass);
+    bridgeGlassA.position.set(0, 2.7, -4.55);
+    const bridgeGlassB = bridgeGlassA.clone();
+    bridgeGlassB.position.z = 4.55;
+    bridgeB.add(bridgeDeck, bridgeGlassA, bridgeGlassB);
+    bridgeB.position.set(-6, 24, -684);
     scene.add(bridgeB);
 
     const plaza = new THREE.Mesh(new THREE.CircleGeometry(38, 32), campusPath);
@@ -1776,8 +1832,13 @@
       grp.add(card);
       carriers[ch.carrier](grp, card);
 
-      grp.position.set(anchor.x, ALT, anchor.z);
-      grp.lookAt(behind.x, ALT, behind.z);
+      if(i === 1){
+        grp.position.set(0, ALT + 24, -536);
+        grp.lookAt(115, ALT + 10, -548);
+      } else {
+        grp.position.set(anchor.x, ALT, anchor.z);
+        grp.lookAt(behind.x, ALT, behind.z);
+      }
       scene.add(grp);
 
       swayers.push({ grp: card, phase: Math.random()*6.28 });
