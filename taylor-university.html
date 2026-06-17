@@ -2408,17 +2408,18 @@
           level = aimIn * aimOut;
           lookTarget.lerp(nextCh.grp.position, level * .8);
       }
+      let lakeFocus = 0;
       const lakeStop = chapters[1];
       if(lakeStop.grp){
-          const lakeFocus = THREE.MathUtils.smoothstep(k, .46, .50) * (1 - THREE.MathUtils.smoothstep(k, .515, .545));
-          if(lakeFocus > 0) lookTarget.lerp(lakeStop.grp.position, lakeFocus * .34);
+          lakeFocus = THREE.MathUtils.smoothstep(k, .46, .50) * (1 - THREE.MathUtils.smoothstep(k, .60, .66));
+          if(lakeFocus > 0) lookTarget.lerp(lakeStop.grp.position, lakeFocus * .62);
       }
       if(first){ lookSmooth.copy(lookTarget); first = false; }
       lookSmooth.lerp(lookTarget, reduceMotion ? 1 : .08);
 
       const cam2look = new THREE.Vector3().subVectors(lookSmooth, camPos);
       const pathForward = new THREE.Vector3().subVectors(lookPos, camPos).normalize();
-      if (cam2look.dot(pathForward) < 2) {
+      if (lakeFocus < .12 && cam2look.dot(pathForward) < 2) {
           lookSmooth.copy(camPos).add(pathForward.multiplyScalar(2));
       }
 
