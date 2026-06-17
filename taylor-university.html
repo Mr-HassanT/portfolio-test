@@ -1838,8 +1838,8 @@
       carriers[ch.carrier](grp, card);
 
       if(i === 1){
-        grp.position.set(0, ALT + 8, -536);
-        grp.scale.setScalar(.48);
+        grp.position.set(-6, ALT + 7, -536);
+        grp.scale.setScalar(.66);
         grp.userData.faceCamera = true;
       } else {
         grp.position.set(anchor.x, ALT, anchor.z);
@@ -2410,8 +2410,8 @@
       }
       const lakeStop = chapters[1];
       if(lakeStop.grp){
-          const lakeFocus = THREE.MathUtils.smoothstep(k, .45, .50) * (1 - THREE.MathUtils.smoothstep(k, .55, .61));
-          if(lakeFocus > 0) lookTarget.lerp(lakeStop.grp.position, lakeFocus * .55);
+          const lakeFocus = THREE.MathUtils.smoothstep(k, .46, .50) * (1 - THREE.MathUtils.smoothstep(k, .515, .545));
+          if(lakeFocus > 0) lookTarget.lerp(lakeStop.grp.position, lakeFocus * .34);
       }
       if(first){ lookSmooth.copy(lookTarget); first = false; }
       lookSmooth.lerp(lookTarget, reduceMotion ? 1 : .08);
