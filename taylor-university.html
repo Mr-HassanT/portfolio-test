@@ -383,15 +383,15 @@
   scene.add(sunGroup, moonGroup);
 
   /* ============ FLIGHT PATH ============ */
-  const ALT = 30;
+  const ALT = 46;
   const path = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(   0, ALT,  120),
+    new THREE.Vector3(   0, ALT,  150),
     new THREE.Vector3(   0, ALT,  -80),
-    new THREE.Vector3(  80, ALT, -170),
-    new THREE.Vector3(  80, ALT, -420),
-    new THREE.Vector3( -70, ALT, -510),
-    new THREE.Vector3( -70, ALT, -760),
-    new THREE.Vector3(  55, ALT, -850),
+    new THREE.Vector3(   0, ALT, -225),
+    new THREE.Vector3( 145, ALT, -360),
+    new THREE.Vector3( 145, ALT, -520),
+    new THREE.Vector3( 145, ALT, -665),
+    new THREE.Vector3(  70, ALT, -850),
     new THREE.Vector3(  55, ALT,-1100),
     new THREE.Vector3( -45, ALT,-1190),
     new THREE.Vector3( -45, ALT,-1340),
@@ -570,8 +570,8 @@
   }
 
   /* ============ ROADS ON THE GROUND ============ */
-  const vRoads = [-110, -38, 34, 106];
-  const hRoads = [-140, -440, -740, -1040, -1340];
+  const vRoads = [-190, 190];
+  const hRoads = [-185, -850, -1140, -1430];
   const GROUND_W = 1200, GROUND_L = 2400, GROUND_CZ = -700;
 
   function groundTexture(){
@@ -765,10 +765,11 @@
   const campusWhite = new THREE.MeshLambertMaterial({ color:0xf7f3ea });
   const campusConcrete = new THREE.MeshLambertMaterial({ color:0xd9ddd8 });
   const campusDarkGlass = new THREE.MeshLambertMaterial({ color:0x5f9fb1, transparent:true, opacity:.82 });
-  const campusWater = new THREE.MeshLambertMaterial({ color:0x7fc4d8, transparent:true, opacity:.72 });
+  const campusWater = new THREE.MeshLambertMaterial({ color:0x7fc4d8, transparent:true, opacity:.9 });
   const campusRed = new THREE.MeshLambertMaterial({ color:0xd94f3f });
   const campusPath = new THREE.MeshLambertMaterial({ color:0xe9e1d0 });
   const campusGrass = new THREE.MeshLambertMaterial({ color:0x8fd39a });
+  const campusRoad = new THREE.MeshLambertMaterial({ color:0x6f7a99 });
 
   function campusWindowMaterial(base = '#eff7f5', glass = '#63aeba'){
     const c = document.createElement('canvas'); c.width = 256; c.height = 256;
@@ -819,6 +820,12 @@
     const sideB = sideA.clone();
     sideB.position.x = w/2 + .35;
     grp.add(sideA, sideB);
+    [-1, 1].forEach(side => {
+      const sidePanel = new THREE.Mesh(new THREE.PlaneGeometry(d*.72, h*.78), campusDarkGlass);
+      sidePanel.position.set(side*(w/2 + 1.55), h*.5, 0);
+      sidePanel.rotation.y = side > 0 ? Math.PI/2 : -Math.PI/2;
+      grp.add(sidePanel);
+    });
 
     for(let y=7; y<h; y+=9){
       const band = new THREE.Mesh(new THREE.BoxGeometry(w + 3.2, .65, d + 1.2), campusWhite);
@@ -852,6 +859,25 @@
       grp.add(redSign);
     }
 
+    if(opts.terraces){
+      const face = opts.lakeFace || 1;
+      for(let y=10; y<h-3; y+=10){
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(w*.76, .7, 7), campusWhite);
+        deck.position.set(0, y, face*(d/2 + 3.4));
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(w*.76, 1.1, .55), campusDarkGlass);
+        rail.position.set(0, y + .9, face*(d/2 + 6.8));
+        const shade = new THREE.Mesh(new THREE.BoxGeometry(w*.62, .55, 1.2), campusRed);
+        shade.position.set(0, y + 2.1, face*(d/2 + 6.2));
+        grp.add(deck, rail, shade);
+      }
+      const stair = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.2, h*.92, 16), campusDarkGlass);
+      stair.position.set(-w/2 - 7, h*.46, face*(d*.18));
+      const core = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, h*.98, 16), campusWhite);
+      core.position.copy(stair.position);
+      core.position.y = h*.49;
+      grp.add(stair, core);
+    }
+
     grp.position.set(x, 0, z);
     if(opts.rot) grp.rotation.y = opts.rot;
     scene.add(grp);
@@ -869,6 +895,66 @@
       rail.position.set(0, 1.15, side*d/2);
       deck.add(rail);
     });
+  }
+
+  function makeRoadSegment(x, z, w, d, rot = 0){
+    const road = new THREE.Mesh(new THREE.BoxGeometry(w, .35, d), campusRoad);
+    road.position.set(x, .11, z);
+    road.rotation.y = rot;
+    scene.add(road);
+    const line = new THREE.Mesh(new THREE.BoxGeometry(Math.max(1, w*.72), .04, .5), creamMat);
+    line.position.y = .22;
+    road.add(line);
+  }
+
+  function makeRoundabout(x, z){
+    const outer = new THREE.Mesh(new THREE.CylinderGeometry(24, 24, .32, 32), campusRoad);
+    outer.position.set(x, .12, z);
+    const inner = new THREE.Mesh(new THREE.CylinderGeometry(13, 13, .38, 24), campusGrass);
+    inner.position.set(x, .17, z);
+    scene.add(outer, inner);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(16, 5), new THREE.MeshBasicMaterial({ map:taylorsSignTexture(), transparent:true, side:THREE.DoubleSide }));
+    sign.position.set(x, 7, z - 12);
+    scene.add(sign);
+  }
+
+  function educationBannerTexture(){
+    const c = document.createElement('canvas'); c.width = 1024; c.height = 300;
+    const g = c.getContext('2d');
+    roundRect(g, 18, 18, 988, 264, 34);
+    g.fillStyle = '#fff8ec'; g.fill();
+    g.lineWidth = 14; g.strokeStyle = '#5f7fc0'; g.stroke();
+    g.fillStyle = '#5f7fc0';
+    g.font = '900 52px Nunito, sans-serif'; g.textAlign = 'center';
+    g.fillText('EDUCATION', 512, 86);
+    g.fillStyle = '#23315f';
+    g.font = '900 86px Fredoka, sans-serif';
+    g.fillText("TAYLOR'S UNIVERSITY", 512, 176);
+    g.fillStyle = '#d94f3f';
+    g.font = '800 34px Nunito, sans-serif';
+    g.fillText('BSc Computer Science - AI & Cybersecurity', 512, 232);
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return tex;
+  }
+
+  function makeEducationLakeBanner(){
+    const W = 82, H = 24;
+    const grp = new THREE.Group();
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ map:educationBannerTexture(), transparent:true, side:THREE.DoubleSide }));
+    board.position.y = H/2 + 10;
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(W + 4, H + 3, 1.2), navyMat);
+    frame.position.copy(board.position);
+    frame.position.z = -.8;
+    [-W/2 + 8, W/2 - 8].forEach(x => {
+      const pylon = new THREE.Mesh(new THREE.CylinderGeometry(.55, .75, 34, 10), navyMat);
+      pylon.position.set(x, 17, -1.4);
+      grp.add(pylon);
+    });
+    grp.add(frame, board);
+    grp.position.set(0, 48, -545);
+    grp.rotation.y = Math.PI*.03;
+    scene.add(grp);
   }
 
   function makeFlagRow(x0, z, count, spacing){
@@ -909,7 +995,14 @@
   }
 
   function makeTaylorCampus(){
+    makeRoadSegment(0, -196, 132, 11, 0);
+    makeRoundabout(0, -196);
+    makeRoadSegment(-154, -520, 15, 610, 0);
+    makeRoadSegment(154, -520, 15, 610, 0);
+    makeRoadSegment(0, -830, 320, 14, 0);
+
     makeCampusLake();
+    makeEducationLakeBanner();
     makeWalkway(0, -520, 210, 9, 0);
     makeWalkway(0, -350, 150, 7, Math.PI*.05);
     makeWalkway(0, -680, 168, 7, -Math.PI*.04);
@@ -918,8 +1011,8 @@
     makeCampusBlock(-28, -430, 38, 66, 34, { base:'#f5f7f4', glass:'#63b4c0', wideRoof:true });
     makeCampusBlock(54, -428, 48, 64, 36, { base:'#eef5f3', glass:'#5ba7b2', wideRoof:true });
     makeCampusBlock(105, -472, 40, 54, 30, { base:'#f4f7f4', glass:'#67b7bf', wideRoof:true });
-    makeCampusBlock(72, -672, 66, 48, 36, { base:'#f7f5ef', glass:'#69aeb8', roofSign:true });
-    makeCampusBlock(-86, -692, 58, 38, 34, { base:'#eef4ef', glass:'#5ea6b4' });
+    makeCampusBlock(72, -672, 66, 48, 36, { base:'#f7f5ef', glass:'#69aeb8', roofSign:true, terraces:true, lakeFace:1 });
+    makeCampusBlock(-86, -692, 58, 38, 34, { base:'#eef4ef', glass:'#5ea6b4', terraces:true, lakeFace:1 });
     makeCampusBlock(0, -262, 82, 36, 34, { base:'#f3f8f6', glass:'#6bb7c0', wideRoof:true, frontColumns:true });
 
     const bridgeA = new THREE.Mesh(new THREE.BoxGeometry(58, 3.2, 8), campusWhite);
