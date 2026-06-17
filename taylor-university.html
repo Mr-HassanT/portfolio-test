@@ -388,12 +388,14 @@
     new THREE.Vector3(   0, ALT,  150),
     new THREE.Vector3(   0, ALT,  -80),
     new THREE.Vector3(   0, ALT, -225),
-    new THREE.Vector3(  96, ALT, -330),
-    new THREE.Vector3( 178, ALT, -452),
-    new THREE.Vector3( 168, ALT, -548),
-    new THREE.Vector3(  46, ALT, -630),
-    new THREE.Vector3(  -8, ALT, -704),
-    new THREE.Vector3(  92, ALT, -790),
+    new THREE.Vector3(  76, ALT, -258),
+    new THREE.Vector3( 112, ALT, -320),
+    new THREE.Vector3(  16, ALT, -420),
+    new THREE.Vector3(  18, ALT, -488),
+    new THREE.Vector3(-116, ALT, -536),
+    new THREE.Vector3(-112, ALT, -620),
+    new THREE.Vector3(  -8, ALT, -694),
+    new THREE.Vector3(  82, ALT, -815),
     new THREE.Vector3(  55, ALT,-1100),
     new THREE.Vector3( -45, ALT,-1190),
     new THREE.Vector3( -45, ALT,-1340),
@@ -409,13 +411,13 @@
     { t:.05, carrier:'blimp', tag:'WELCOME ABOARD', title:"HI, I'M HASSAN", sub:'Muhammad Hassan Tariq · Quantitative Developer · Abu Dhabi', accent:'#e2674f',
       foot:'TICKER: HSSN · SECTOR: QUANT DEV · ANALYST RATING: STRONG BUY',
       lines:['This prototype starts the life-map idea',"with Taylor's University Lakeside Campus:",'lake, bridges, white academic blocks,','glass facades, palms, flags, and a','recognizable red campus sign.'] },
-    { t:.36, carrier:'heli', tag:'STOP 1 · WHERE IT BEGAN', title:"TAYLOR'S UNIVERSITY", sub:'BSc (Hons) Computer Science · AI & Cybersecurity', accent:'#5f7fc0',
+    { t:.38, carrier:'heli', tag:'STOP 1 · WHERE IT BEGAN', title:"TAYLOR'S UNIVERSITY", sub:'BSc (Hons) Computer Science · AI & Cybersecurity', accent:'#5f7fc0',
       foot:'IPO DEC 2022 · PROSPECTUS: FIRST-CLASS FUNDAMENTALS',
       lines:['Graduated December 2022 after a foundation','year at Heriot-Watt University Dubai.','This stop now flies through a campus','mockup instead of generic buildings,','ready for more detail later.'] },
-    { t:.58, carrier:'crane', tag:'STOP 2 · THE BUILDING YEARS', title:'AL RAMZ · 2022–25', sub:'Software Engineer → Quantitative Developer · Algo Desk', accent:'#3f9181',
+    { t:.70, carrier:'crane', tag:'STOP 2 · THE BUILDING YEARS', title:'AL RAMZ · 2022–25', sub:'Software Engineer → Quantitative Developer · Algo Desk', accent:'#3f9181',
       foot:'4 PROMOTIONS IN 3 YEARS · UPTIME 99.97% · DEPLOYS: 217',
       lines:['Joined the Robotics & Algorithms desk and','climbed from Software Engineer to Quant','Developer. Built a proprietary FIX engine','for automated execution, Blazor risk','dashboards, and margin frameworks.'] },
-    { t:.70, carrier:'bank', tag:'STOP 3 · TODAY', title:'IRH · QUANT EQUITIES', sub:'Quantitative Developer · International Resources Holding', accent:'#c98a12',
+    { t:.80, carrier:'bank', tag:'STOP 3 · TODAY', title:'IRH · QUANT EQUITIES', sub:'Quantitative Developer · International Resources Holding', accent:'#c98a12',
       foot:'LIVE SINCE SEP 2025 · MULTI-ASSET ML MODELS · GREEKS COMPUTED DAILY',
       lines:['ML.NET models trading global equities, with','Databricks research pipelines feeding the desk.','Built an OTC options platform pricing Greeks,','vol surfaces and IV contango - fully deployed','and generating signals in production.'] },
     { t:.82, carrier:'balloon', tag:'STOP 4 · MY TOOLBOX', title:'WHAT I BUILD WITH', sub:'Current stack & future directions', accent:'#e8a93d',
@@ -1833,8 +1835,9 @@
       carriers[ch.carrier](grp, card);
 
       if(i === 1){
-        grp.position.set(0, ALT + 24, -536);
-        grp.lookAt(115, ALT + 10, -548);
+        grp.position.set(0, ALT + 8, -536);
+        grp.scale.setScalar(.48);
+        grp.userData.faceCamera = true;
       } else {
         grp.position.set(anchor.x, ALT, anchor.z);
         grp.lookAt(behind.x, ALT, behind.z);
@@ -2402,6 +2405,14 @@
           level = aimIn * aimOut;
           lookTarget.lerp(nextCh.grp.position, level * .8);
       }
+      const lakeStop = chapters[1];
+      if(lakeStop.grp){
+          const lakeFocus = THREE.MathUtils.smoothstep(k, .31, .36) * (1 - THREE.MathUtils.smoothstep(k, .46, .54));
+          if(lakeFocus > 0){
+              lookTarget.lerp(lakeStop.grp.position, lakeFocus * .92);
+              level = Math.max(level, lakeFocus * .7);
+          }
+      }
 
       if(first){ lookSmooth.copy(lookTarget); first = false; }
       lookSmooth.lerp(lookTarget, reduceMotion ? 1 : .08);
@@ -2415,6 +2426,9 @@
       camera.position.copy(camPos);
       if(!reduceMotion) camera.position.y += Math.sin(t*1.1) * .18 * (1 - level);
       camera.lookAt(lookSmooth.x, ALT, lookSmooth.z);
+      if(chapters[1].grp && chapters[1].grp.userData.faceCamera){
+        chapters[1].grp.lookAt(camera.position.x, chapters[1].grp.position.y, camera.position.z);
+      }
 
       path.getTangentAt(k, tanA);
       path.getTangentAt(Math.min(1, k + .02), tanB);
