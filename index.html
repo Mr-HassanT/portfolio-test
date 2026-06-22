@@ -401,6 +401,37 @@
   const N_SAMPLES = 420;
   const pathSamples = path.getPoints(N_SAMPLES);
   const Z_MIN = -1650, Z_MAX = 170;
+  const METRO_RAIL_Y = 52;
+  const METRO_CLEARANCE = 50;
+  const METRO_SPEED = .026;
+  const METRO_FRONT_OFFSET = 18;
+  const METRO_RETURN_OFFSET = 132;
+  const metroUp = new THREE.Vector3(0, 1, 0);
+  const metroSide = new THREE.Vector3();
+  const metroTangent = new THREE.Vector3();
+  function metroPointAt(t, offset){
+    const base = path.getPointAt(t);
+    path.getTangentAt(t, metroTangent).normalize();
+    metroSide.crossVectors(metroUp, metroTangent).normalize();
+    return new THREE.Vector3(
+      base.x + metroSide.x * offset,
+      METRO_RAIL_Y,
+      base.z + metroSide.z * offset
+    );
+  }
+  function metroOffsetRun(offset, from, to, steps){
+    const pts = [];
+    for(let i=0; i<=steps; i++){
+      const u = i / steps;
+      pts.push(metroPointAt(THREE.MathUtils.lerp(from, to, u), offset));
+    }
+    return pts;
+  }
+  const metroCurve = new THREE.CatmullRomCurve3([
+    ...metroOffsetRun(METRO_FRONT_OFFSET, .015, .985, 34),
+    ...metroOffsetRun(METRO_RETURN_OFFSET, .985, .015, 34),
+  ], true, 'centripetal');
+  const metroSamples = metroCurve.getPoints(720);
 
   /* ============ STORY CONTENT ============ */
   const chapters = [
@@ -1064,6 +1095,17 @@
       if(hRoads.some(rz => Math.abs(z - rz) < 18)) continue;
       if(wheelSpots.some(([wx, wz]) => { const dx = wx-x, dz = wz-z; return dx*dx + dz*dz < 24*24; })) continue;
 
+      let metroD = 1e9;
+      for(const p of metroSamples){
+        const dx = p.x-x, dz = p.z-z; const dd = dx*dx+dz*dz;
+        if(dd < metroD) metroD = dd;
+      }
+      metroD = Math.sqrt(metroD);
+      if(metroD < METRO_CLEARANCE){
+        if(Math.random() < .65) makePark(x, z);
+        continue;
+      }
+
       let minD = 1e9;
       for(const p of pathSamples){
         const dx = p.x-x, dz = p.z-z; const dd = dx*dx+dz*dz;
@@ -1105,17 +1147,8 @@
 
   /* ============ ELEVATED METRO LOOP ============ */
   const metroLoop = (() => {
-    const railY = 17;
-    const curve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(-205, railY,  105),
-      new THREE.Vector3( 185, railY,  105),
-      new THREE.Vector3( 225, railY,   45),
-      new THREE.Vector3( 225, railY, -1460),
-      new THREE.Vector3( 175, railY, -1535),
-      new THREE.Vector3(-205, railY, -1535),
-      new THREE.Vector3(-245, railY, -1460),
-      new THREE.Vector3(-245, railY,   35),
-    ], true, 'catmullrom', .18);
+    const railY = METRO_RAIL_Y;
+    const curve = metroCurve;
 
     const railMat = new THREE.MeshLambertMaterial({ color:0x23315f });
     const sleeperMat = new THREE.MeshLambertMaterial({ color:0xf7f3ea });
@@ -1186,7 +1219,7 @@
     g.add(train);
     scene.add(g);
 
-    return { curve, train, speed:.075, offset:0, tmpP:new THREE.Vector3(), tmpT:new THREE.Vector3() };
+    return { curve, train, speed:METRO_SPEED, offset:0, tmpP:new THREE.Vector3(), tmpT:new THREE.Vector3() };
   })();
 
   /* ============ AMBIENT VEHICLES, PEOPLE, CYCLES ============ */
