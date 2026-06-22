@@ -401,18 +401,18 @@
   const N_SAMPLES = 420;
   const pathSamples = path.getPoints(N_SAMPLES);
   const Z_MIN = -1650, Z_MAX = 170;
-  const METRO_RAIL_Y = 52;
-  const METRO_CLEARANCE = 50;
+  const METRO_RAIL_Y = 58;
+  const METRO_CLEARANCE = 58;
   const METRO_SPEED = .026;
-  const METRO_FRONT_OFFSET = 18;
-  const METRO_RETURN_OFFSET = 132;
+  const METRO_FRONT_OFFSET = 74;
+  const METRO_RETURN_OFFSET = 165;
   const metroUp = new THREE.Vector3(0, 1, 0);
   const metroSide = new THREE.Vector3();
   const metroTangent = new THREE.Vector3();
   function metroPointAt(t, offset){
     const base = path.getPointAt(t);
     path.getTangentAt(t, metroTangent).normalize();
-    metroSide.crossVectors(metroUp, metroTangent).normalize();
+    metroSide.crossVectors(metroTangent, metroUp).normalize();
     return new THREE.Vector3(
       base.x + metroSide.x * offset,
       METRO_RAIL_Y,
@@ -1040,7 +1040,7 @@
 
   /* ferris wheels - landmark attractions at three scenic corners */
   const ferrisWheels = [];
-  const wheelSpots = [[140, -300, 0xff8a73], [-130, -650, 0xffd166], [70, 90, 0x7bdcb5]];
+  const wheelSpots = [[-170, -300, 0xff8a73], [-190, -650, 0xffd166], [-160, 90, 0x7bdcb5]];
   function makeFerrisWheel(x, z, accent){
     const g = new THREE.Group();
     const R = 9, hubY = R + 3;
@@ -1102,7 +1102,6 @@
       }
       metroD = Math.sqrt(metroD);
       if(metroD < METRO_CLEARANCE){
-        if(Math.random() < .65) makePark(x, z);
         continue;
       }
 
@@ -1198,28 +1197,35 @@
       }
     }
 
-    const train = new THREE.Group();
-    for(let i=0; i<3; i++){
-      const car = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.BoxGeometry(5.2, 3.2, 12), trainMat);
-      body.position.y = 1.8;
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(5.3, .7, 12.1), accentMat);
-      stripe.position.y = 2.35;
-      for(let w=-1; w<=1; w++){
-        const window = new THREE.Mesh(new THREE.BoxGeometry(5.36, .95, 1.65), glassMat);
-        window.position.set(0, 2.55, w * 3);
-        car.add(window);
+    const trains = [];
+    function makeTrain(){
+      const train = new THREE.Group();
+      for(let i=0; i<3; i++){
+        const car = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(5.2, 3.2, 12), trainMat);
+        body.position.y = 1.8;
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(5.3, .7, 12.1), accentMat);
+        stripe.position.y = 2.35;
+        for(let w=-1; w<=1; w++){
+          const window = new THREE.Mesh(new THREE.BoxGeometry(5.36, .95, 1.65), glassMat);
+          window.position.set(0, 2.55, w * 3);
+          car.add(window);
+        }
+        const nose = new THREE.Mesh(new THREE.BoxGeometry(5.25, 2.6, 1.1), navyMat);
+        nose.position.set(0, 1.85, -6.55);
+        car.position.z = i * 13.5;
+        car.add(body, stripe, nose);
+        train.add(car);
       }
-      const nose = new THREE.Mesh(new THREE.BoxGeometry(5.25, 2.6, 1.1), navyMat);
-      nose.position.set(0, 1.85, -6.55);
-      car.position.z = i * 13.5;
-      car.add(body, stripe, nose);
-      train.add(car);
+      g.add(train);
+      trains.push(train);
+      return train;
     }
-    g.add(train);
+    const trainOffsets = [.02, .08, .14, .20, .26, .32, .38, .44, .58, .72, .86];
+    trainOffsets.forEach(() => makeTrain());
     scene.add(g);
 
-    return { curve, train, speed:METRO_SPEED, offset:0, tmpP:new THREE.Vector3(), tmpT:new THREE.Vector3() };
+    return { curve, trains, trainOffsets, speed:METRO_SPEED, offset:0, tmpP:new THREE.Vector3(), tmpT:new THREE.Vector3() };
   })();
 
   /* ============ AMBIENT VEHICLES, PEOPLE, CYCLES ============ */
@@ -2297,11 +2303,14 @@
       });
       if(metroLoop){
           metroLoop.offset = (metroLoop.offset + metroLoop.speed * dt) % 1;
-          metroLoop.curve.getPointAt(metroLoop.offset, metroLoop.tmpP);
-          metroLoop.curve.getTangentAt(metroLoop.offset, metroLoop.tmpT).normalize();
-          metroLoop.train.position.copy(metroLoop.tmpP);
-          metroLoop.train.rotation.y = Math.atan2(metroLoop.tmpT.x, metroLoop.tmpT.z);
-          metroLoop.train.position.y -= .15 + Math.sin(t * 3) * .05;
+          metroLoop.trains.forEach((train, i) => {
+            const u = (metroLoop.offset + metroLoop.trainOffsets[i]) % 1;
+            metroLoop.curve.getPointAt(u, metroLoop.tmpP);
+            metroLoop.curve.getTangentAt(u, metroLoop.tmpT).normalize();
+            train.position.copy(metroLoop.tmpP);
+            train.rotation.y = Math.atan2(metroLoop.tmpT.x, metroLoop.tmpT.z);
+            train.position.y -= .15 + Math.sin(t * 3 + i) * .05;
+          });
       }
       spinners.forEach(s => { s.mesh.rotation[s.axis] += s.speed * .016; });
       bobbers.forEach(b => { b.grp.position.y = b.baseY + Math.sin(t*1.2 + b.phase) * b.amp; });
