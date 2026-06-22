@@ -83,6 +83,18 @@
   #modeControls button{padding:0 1.15rem}
   #modeControls button.active{background:var(--mint)}
   #waypointSelect{max-width:168px;padding:0 .9rem}
+  #weatherControls{
+    position:fixed;right:clamp(12px,3vw,32px);top:calc(70px + 1.5vh);z-index:9;
+    display:flex;align-items:center;gap:.45rem;opacity:0;pointer-events:none;
+    transition:opacity .6s ease;
+  }
+  #weatherControls.on{opacity:1;pointer-events:auto}
+  #weatherControls button{
+    height:38px;border:3px solid var(--navy);border-radius:999px;background:rgba(255,248,236,.9);color:var(--navy);
+    font-family:'Fredoka',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.02em;
+    box-shadow:0 5px 0 rgba(35,49,95,.18);cursor:pointer;padding:0 .82rem;
+  }
+  #weatherControls button.active{background:var(--sun)}
 
   #desktopControls{
     position:fixed;left:clamp(12px,3vw,32px);top:calc(18px + 1.5vh);z-index:9;
@@ -203,6 +215,11 @@
     #modeControls button,#waypointSelect{height:38px;font-size:.76rem}
     #modeControls button{padding:0 .8rem}
     #waypointSelect{max-width:132px}
+    #weatherControls{
+      left:50%;right:auto;top:calc(130px + 1vh);transform:translateX(-50%);
+      justify-content:center;width:calc(100% - 24px);gap:.32rem;
+    }
+    #weatherControls button{height:34px;font-size:.66rem;padding:0 .6rem}
     #hud {
       display: grid; grid-template-columns: 1fr 1fr;
       gap: 0.4rem;
@@ -270,6 +287,13 @@
     <option value="4">Toolbox</option>
     <option value="5">After Hours</option>
   </select>
+</div>
+
+<div id="weatherControls" aria-label="Weather mood">
+  <button type="button" class="active" data-weather="story">Story</button>
+  <button type="button" data-weather="gold">Gold</button>
+  <button type="button" data-weather="rain">Rain</button>
+  <button type="button" data-weather="neon">Neon</button>
 </div>
 
 <div id="desktopControls" aria-hidden="true">
@@ -1732,15 +1756,83 @@
   const starMat = new THREE.PointsMaterial({ color:0xfff6d8, size:1.5, transparent:true, opacity:0, fog:false });
   scene.add(new THREE.Points(starGeo, starMat));
 
+  const RAIN_DROPS = 520;
+  const rainDrops = [];
+  const rainPositions = new Float32Array(RAIN_DROPS * 6);
+  const rainGeo = new THREE.BufferGeometry();
+  function seedRainDrop(i, high){
+    rainDrops[i] = {
+      x:(Math.random()-.5)*260,
+      y:(high ? 40 : -25) + Math.random()*115,
+      z:-60 - Math.random()*260,
+      speed:72 + Math.random()*56
+    };
+  }
+  for(let i=0;i<RAIN_DROPS;i++) seedRainDrop(i, false);
+  rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));
+  const rainMat = new THREE.LineBasicMaterial({ color:0xbfd4ff, transparent:true, opacity:0, fog:false });
+  const rain = new THREE.LineSegments(rainGeo, rainMat);
+  rain.visible = false;
+  scene.add(rain);
+
+  function updateRain(dt){
+    const active = weatherMood === 'rain' && !reduceMotion;
+    rainMat.opacity += ((active ? .48 : 0) - rainMat.opacity) * .12;
+    rain.visible = rainMat.opacity > .01;
+    if(!rain.visible) return;
+    rain.position.copy(camera.position);
+    for(let i=0;i<RAIN_DROPS;i++){
+      const d = rainDrops[i];
+      if(active){
+        d.y -= d.speed * dt;
+        d.x -= 11 * dt;
+        if(d.y < -34 || d.x < -150) seedRainDrop(i, true);
+      }
+      const p = i * 6;
+      rainPositions[p] = d.x;
+      rainPositions[p + 1] = d.y;
+      rainPositions[p + 2] = d.z;
+      rainPositions[p + 3] = d.x - 2.4;
+      rainPositions[p + 4] = d.y - 12;
+      rainPositions[p + 5] = d.z;
+    }
+    rainGeo.attributes.position.needsUpdate = true;
+  }
+
   /* ============ DAY → NIGHT ============ */
   const skyDay = new THREE.Color(0x87ceeb), skyDusk = new THREE.Color(0xffb27d), skyNight = new THREE.Color(0x1b2a5e);
   const fogDay = new THREE.Color(0xcfeaf7), fogDusk = new THREE.Color(0xf5c39a), fogNight = new THREE.Color(0x27345f);
+  const weatherLooks = {
+    gold:{ sky:0xffc17a, fog:0xffddb2, sun:1.25, ambient:.78, lights:.18, stars:0, birds:.9, cloud:0xfff1d6, sunFade:1, moon:.02 },
+    rain:{ sky:0x6f879d, fog:0x8ea3b3, sun:.18, ambient:.56, lights:.62, stars:0, birds:.16, cloud:0x718196, sunFade:.08, moon:0 },
+    neon:{ sky:0x10152f, fog:0x1d254d, sun:.08, ambient:.5, lights:1.18, stars:1, birds:0, cloud:0x24305f, sunFade:0, moon:.65 }
+  };
   const tmp = new THREE.Color();
   const triLerp = (a,b,c,k) => k < .5 ? tmp.copy(a).lerp(b,k*2) : tmp.copy(b).lerp(c,(k-.5)*2);
 
   function setTimeOfDay(k){
+    const look = weatherLooks[weatherMood];
+    if(look){
+      scene.background = new THREE.Color(look.sky);
+      scene.fog.color.setHex(look.fog);
+      sun.intensity = look.sun;
+      sun.color.setHex(weatherMood === 'neon' ? 0xaec4ff : 0xffe1a8);
+      ambient.intensity = look.ambient;
+      cloudMat.color.setHex(look.cloud);
+      sunCore.material.opacity = look.sunFade;
+      sunGlow1.material.opacity = .35 * look.sunFade;
+      sunGlow2.material.opacity = .16 * look.sunFade;
+      moonCore.material.opacity = look.moon;
+      moonGlow.material.opacity = .3 * look.moon;
+      buildingMats.forEach(m => m.emissiveIntensity = look.lights);
+      starMat.opacity = look.stars;
+      birdMats.forEach(m => m.opacity = look.birds);
+      return;
+    }
+
     scene.background = triLerp(skyDay, skyDusk, skyNight, k).clone();
     scene.fog.color.copy(triLerp(fogDay, fogDusk, fogNight, k));
+    cloudMat.color.setHex(0xffffff);
 
     sun.intensity = Math.max(.25, 1.1 - k*.95);
     sun.color.setHSL(.11 - k*.04, .9, .8);
@@ -1762,7 +1854,7 @@
   }
 
   /* ============ FLIGHT CONTROL ============ */
-  let scrollT = 0, smoothT = 0, lastScroll = 0, speedKmh = 0, started = false, bank = 0, mode = 'story';
+  let scrollT = 0, smoothT = 0, lastScroll = 0, speedKmh = 0, started = false, bank = 0, mode = 'story', weatherMood = 'story';
   const MAX_STEP = .0035;
   const lookSmooth = new THREE.Vector3(0, ALT, 0);
   const freeState = {
@@ -1796,6 +1888,7 @@
   const hssnEl = document.getElementById('hssn');
   const hintEl = document.getElementById('hint'), modeControls = document.getElementById('modeControls'), touchControls = document.getElementById('touchControls');
   const freeRoamBtn = document.getElementById('freeRoamBtn'), resumeStoryBtn = document.getElementById('resumeStoryBtn'), waypointSelect = document.getElementById('waypointSelect');
+  const weatherControls = document.getElementById('weatherControls'), weatherButtons = [...weatherControls.querySelectorAll('button')];
   const desktopControls = document.getElementById('desktopControls');
   const storyPop = document.getElementById('storyPop'), storyPopMeta = document.getElementById('storyPopMeta'), storyPopTitle = document.getElementById('storyPopTitle'), storyPopText = document.getElementById('storyPopText');
   const marketPop = document.getElementById('marketPop');
@@ -1808,6 +1901,7 @@
       hintEl.classList.add('on');
       document.getElementById('ticker').classList.add('on');
       modeControls.classList.add('on');
+      weatherControls.classList.add('on');
       scrollTo({ top:0 });
   }
 
@@ -1980,6 +2074,16 @@
     const index = Number(waypointSelect.value);
     if(index) flyToStop(index);
     waypointSelect.value = '';
+  });
+  weatherButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      weatherMood = btn.dataset.weather;
+      weatherButtons.forEach(b => b.classList.toggle('active', b === btn));
+      if(weatherMood !== 'rain'){
+        rainMat.opacity = 0;
+        rain.visible = false;
+      }
+    });
   });
   document.getElementById('storyPopClose').addEventListener('click', closeStoryPop);
   document.getElementById('marketPopClose').addEventListener('click', closeMarketPop);
@@ -2237,6 +2341,7 @@
     // sun sets and moon rises on the horizon ahead, tracking the camera
     sunGroup.position.set(camera.position.x + 250 - k*130, 175 - k*235, camera.position.z - 830);
     moonGroup.position.set(camera.position.x - 260 + k*140, -45 + k*215, camera.position.z - 830);
+    updateRain(dt);
 
     const v = Math.abs(scrollY - lastScroll); lastScroll = scrollY;
     const targetSpeed = mode === 'roam' ? Math.min(260, freeState.speed) : (started ? Math.min(240, v*4) : 0);
