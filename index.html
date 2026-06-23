@@ -768,13 +768,26 @@
   }
 
   function bankLogoTexture(label = 'IRH BANK', accent = '#c98a12'){
-    const c = document.createElement('canvas'); c.width = 512; c.height = 180;
+    const c = document.createElement('canvas'); c.width = 640; c.height = 220;
     const g = c.getContext('2d');
     g.fillStyle = '#fff8ec'; g.fillRect(0,0,c.width,c.height);
-    g.strokeStyle = '#23315f'; g.lineWidth = 14; roundRect(g, 12, 12, 488, 156, 24); g.stroke();
-    g.fillStyle = accent; g.beginPath(); g.arc(82, 90, 38, 0, 7); g.fill();
-    g.fillStyle = '#23315f'; g.font = '800 56px Fredoka, sans-serif'; g.textAlign = 'left'; g.fillText(label, 136, 92);
-    g.font = '800 24px Nunito, sans-serif'; g.fillStyle = '#8a93b8'; g.fillText('QUANT EQUITIES DESK', 140, 128);
+    g.strokeStyle = '#23315f'; g.lineWidth = 16; roundRect(g, 16, 16, 608, 188, 28); g.stroke();
+    g.fillStyle = accent; g.beginPath(); g.arc(94, 110, 46, 0, 7); g.fill();
+    g.fillStyle = '#fff8ec'; g.fillRect(72, 102, 44, 40);
+    g.fillStyle = '#23315f'; g.fillRect(83, 118, 22, 24);
+
+    g.textAlign = 'left';
+    let mainSize = 64;
+    do {
+      g.font = `800 ${mainSize}px Fredoka, sans-serif`;
+      mainSize -= 2;
+    } while(g.measureText(label).width > 410 && mainSize > 34);
+    g.fillStyle = '#23315f';
+    g.fillText(label, 166, 110);
+
+    g.font = '800 27px Nunito, sans-serif';
+    g.fillStyle = '#8a93b8';
+    g.fillText('QUANT EQUITIES DESK', 170, 150);
     const tex = new THREE.CanvasTexture(c);
     tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
     return tex;
@@ -1588,38 +1601,62 @@
   function addBank(grp, card){
     const W = card.userData.W, H = card.userData.H;
     const bank = new THREE.Group();
-    const baseW = 34, baseH = 26, baseD = 18;
+    const baseW = 42, baseH = 27, baseD = 20;
     const stoneMat = new THREE.MeshLambertMaterial({ color:0xf1eadc });
     const goldMat = new THREE.MeshLambertMaterial({ color:0xc98a12, side:THREE.DoubleSide });
+    const trimMat = new THREE.MeshLambertMaterial({ color:0xe4d6bd });
     const base = new THREE.Mesh(new THREE.BoxGeometry(baseW, baseH, baseD), stoneMat);
     base.position.y = baseH/2;
     bank.add(base);
 
-    const roofCap = new THREE.Mesh(new THREE.BoxGeometry(baseW + 2, 1.4, baseD + 1.5), goldMat);
+    const facade = new THREE.Mesh(new THREE.BoxGeometry(baseW - 4, baseH - 5, .7), trimMat);
+    facade.position.set(0, baseH/2 - .8, baseD/2 + .38);
+    bank.add(facade);
+
+    const roofCap = new THREE.Mesh(new THREE.BoxGeometry(baseW + 2.5, 1.4, baseD + 1.8), goldMat);
     roofCap.position.y = baseH + .7;
     bank.add(roofCap);
 
-    const frontBeam = new THREE.Mesh(new THREE.BoxGeometry(baseW*.88, 1.6, 3.4), goldMat);
-    frontBeam.position.set(0, baseH + 2.1, baseD/2 + 1.5);
+    const frontBeam = new THREE.Mesh(new THREE.BoxGeometry(baseW*.9, 1.7, 3.6), goldMat);
+    frontBeam.position.set(0, baseH + 2.1, baseD/2 + 1.7);
     bank.add(frontBeam);
 
-    const pediment = makePediment(baseW*.9, 7, goldMat);
-    pediment.position.set(0, baseH + 2.8, baseD/2 + 3.25);
+    const pediment = makePediment(baseW*.92, 7.4, goldMat);
+    pediment.position.set(0, baseH + 2.9, baseD/2 + 3.45);
     bank.add(pediment);
 
-    const logo = new THREE.Mesh(new THREE.PlaneGeometry(15, 5.3), new THREE.MeshBasicMaterial({ map:bankLogoTexture('IRH BANK'), side:THREE.DoubleSide }));
-    logo.position.set(0, baseH*.66, baseD/2 + .08);
+    const logo = new THREE.Mesh(new THREE.PlaneGeometry(22, 7.55), new THREE.MeshBasicMaterial({ map:bankLogoTexture('IRH BANK'), side:THREE.DoubleSide }));
+    logo.position.set(0, baseH*.83, baseD/2 + 3.65);
     bank.add(logo);
 
-    for(let i=0;i<5;i++){
-        const col = new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.2,baseH-5,10), stoneMat);
-        col.position.set(-baseW/2 + 4 + i*(baseW-8)/4, (baseH-5)/2 + 1, baseD/2 + 2.2);
-        bank.add(col);
+    const columnXs = [-baseW*.34, -baseW*.17, baseW*.17, baseW*.34];
+    columnXs.forEach(x => {
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(.85,1.05,baseH*.62,12), stoneMat);
+        col.position.set(x, baseH*.31 + 1.1, baseD/2 + 2.35);
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(2.6,.65,1.85), trimMat);
+        cap.position.set(x, baseH*.62 + 1.55, baseD/2 + 2.35);
+        const foot = new THREE.Mesh(new THREE.BoxGeometry(2.8,.7,1.9), trimMat);
+        foot.position.set(x, .35, baseD/2 + 2.35);
+        bank.add(col, cap, foot);
+    });
+
+    for(let i=-1;i<=1;i+=2){
+        const window = new THREE.Mesh(new THREE.BoxGeometry(4.2, 7.5, .35), navyMat);
+        window.position.set(i*9.8, baseH*.34, baseD/2 + .72);
+        bank.add(window);
     }
-    const door = new THREE.Mesh(new THREE.BoxGeometry(5, 10, .3), navyMat);
-    door.position.set(0, 5, baseD/2 + .2);
+
+    const door = new THREE.Mesh(new THREE.BoxGeometry(5.4, 10.5, .4), navyMat);
+    door.position.set(0, 5.25, baseD/2 + .75);
     bank.add(door);
-    bank.position.set(W/2 + 26, -ALT, -4);
+    const step1 = new THREE.Mesh(new THREE.BoxGeometry(15, .8, 5.2), trimMat);
+    step1.position.set(0, .4, baseD/2 + 4);
+    const step2 = new THREE.Mesh(new THREE.BoxGeometry(11, .65, 4), stoneMat);
+    step2.position.set(0, 1.05, baseD/2 + 3.1);
+    bank.add(step1, step2);
+
+    const bankX = W/2 + (innerWidth < 760 ? 14 : 30);
+    bank.position.set(bankX, -ALT, innerWidth < 760 ? -7 : -4);
     grp.add(bank);
   }
 
@@ -1692,6 +1729,10 @@
 
       grp.position.set(anchor.x, ALT, anchor.z);
       grp.lookAt(behind.x, ALT, behind.z);
+      if(ch.carrier === 'bank' && innerWidth < 760){
+        card.scale.setScalar(.42);
+        card.position.x = -6;
+      }
       scene.add(grp);
 
       swayers.push({ grp: card, phase: Math.random()*6.28 });
