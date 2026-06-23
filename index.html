@@ -767,7 +767,7 @@
     scene.add(g);
   }
 
-  function bankLogoTexture(label = 'IRH BANK', accent = '#c98a12'){
+  function bankLogoTexture(label = 'BANK', accent = '#c98a12'){
     const c = document.createElement('canvas'); c.width = 640; c.height = 220;
     const g = c.getContext('2d');
     g.fillStyle = '#fff8ec'; g.fillRect(0,0,c.width,c.height);
@@ -787,7 +787,7 @@
 
     g.font = '800 27px Nunito, sans-serif';
     g.fillStyle = '#8a93b8';
-    g.fillText('QUANT EQUITIES DESK', 170, 150);
+    g.fillText('CITY BRANCH', 170, 150);
     const tex = new THREE.CanvasTexture(c);
     tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
     return tex;
@@ -825,7 +825,7 @@
     pediment.position.set(0, baseH + 1.75, baseD/2 + 2.98);
     g.add(pediment);
 
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(baseW*.58, baseW*.58/2.84), new THREE.MeshBasicMaterial({ map:bankLogoTexture(Math.random() < .5 ? 'IRH BANK' : 'HSSN CAPITAL') }));
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(baseW*.58, baseW*.58/2.84), new THREE.MeshBasicMaterial({ map:bankLogoTexture('BANK') }));
     sign.position.set(0, baseH*.64, baseD/2 + .06);
     g.add(sign);
 
@@ -1625,7 +1625,7 @@
     pediment.position.set(0, baseH + 2.9, baseD/2 + 3.45);
     bank.add(pediment);
 
-    const logo = new THREE.Mesh(new THREE.PlaneGeometry(22, 7.55), new THREE.MeshBasicMaterial({ map:bankLogoTexture('IRH BANK'), side:THREE.DoubleSide }));
+    const logo = new THREE.Mesh(new THREE.PlaneGeometry(22, 7.55), new THREE.MeshBasicMaterial({ map:bankLogoTexture('BANK'), side:THREE.DoubleSide }));
     logo.position.set(0, baseH*.83, baseD/2 + 3.65);
     bank.add(logo);
 
@@ -1655,8 +1655,8 @@
     step2.position.set(0, 1.05, baseD/2 + 3.1);
     bank.add(step1, step2);
 
-    const bankX = W/2 + (innerWidth < 760 ? 14 : 30);
-    bank.position.set(bankX, -ALT, innerWidth < 760 ? -7 : -4);
+    const bankX = W/2 + (innerWidth < 760 ? 42 : 58);
+    bank.position.set(bankX, -ALT, innerWidth < 760 ? -14 : -12);
     grp.add(bank);
   }
 
