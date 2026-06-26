@@ -453,6 +453,8 @@
   const METRO_SPEED = .026;
   const METRO_FRONT_OFFSET = 74;
   const METRO_RETURN_OFFSET = 165;
+  const METRO_CAR_LENGTH = 12;
+  const METRO_CAR_SPACING = 13.5;
   const metroUp = new THREE.Vector3(0, 1, 0);
   const metroSide = new THREE.Vector3();
   const metroTangent = new THREE.Vector3();
@@ -1325,6 +1327,9 @@
   const metroLoop = (() => {
     const railY = METRO_RAIL_Y;
     const curve = metroCurve;
+    const curveLength = curve.getLength();
+    const carSpacingU = METRO_CAR_SPACING / curveLength;
+    const carHalfU = (METRO_CAR_LENGTH * .46) / curveLength;
 
     const railMat = new THREE.MeshLambertMaterial({ color:0x23315f });
     const sleeperMat = new THREE.MeshLambertMaterial({ color:0xf7f3ea });
@@ -1377,6 +1382,7 @@
     const trains = [];
     function makeTrain(){
       const train = new THREE.Group();
+      const cars = [];
       for(let i=0; i<3; i++){
         const car = new THREE.Group();
         const body = new THREE.Mesh(new THREE.BoxGeometry(5.2, 3.2, 12), trainMat);
@@ -1390,10 +1396,11 @@
         }
         const nose = new THREE.Mesh(new THREE.BoxGeometry(5.25, 2.6, 1.1), navyMat);
         nose.position.set(0, 1.85, -6.55);
-        car.position.z = i * 13.5;
         car.add(body, stripe, nose);
         train.add(car);
+        cars.push(car);
       }
+      train.userData.cars = cars;
       g.add(train);
       trains.push(train);
       return train;
@@ -1402,7 +1409,19 @@
     trainOffsets.forEach(() => makeTrain());
     scene.add(g);
 
-    return { curve, trains, trainOffsets, speed:METRO_SPEED, offset:0, tmpP:new THREE.Vector3(), tmpT:new THREE.Vector3() };
+    return {
+      curve,
+      trains,
+      trainOffsets,
+      speed:METRO_SPEED,
+      offset:0,
+      carSpacingU,
+      carHalfU,
+      tmpP:new THREE.Vector3(),
+      tmpFront:new THREE.Vector3(),
+      tmpBack:new THREE.Vector3(),
+      tmpT:new THREE.Vector3()
+    };
   })();
 
   /* ============ AMBIENT VEHICLES, PEOPLE, CYCLES ============ */
@@ -2658,12 +2677,19 @@
       if(metroLoop){
           metroLoop.offset = (metroLoop.offset + metroLoop.speed * dt) % 1;
           metroLoop.trains.forEach((train, i) => {
-            const u = (metroLoop.offset + metroLoop.trainOffsets[i]) % 1;
-            metroLoop.curve.getPointAt(u, metroLoop.tmpP);
-            metroLoop.curve.getTangentAt(u, metroLoop.tmpT).normalize();
-            train.position.copy(metroLoop.tmpP);
-            train.rotation.y = Math.atan2(metroLoop.tmpT.x, metroLoop.tmpT.z);
-            train.position.y -= .15 + Math.sin(t * 3 + i) * .05;
+            const headU = (metroLoop.offset + metroLoop.trainOffsets[i]) % 1;
+            train.userData.cars.forEach((car, carIndex) => {
+              const carU = (headU + carIndex * metroLoop.carSpacingU) % 1;
+              const frontU = (carU + metroLoop.carHalfU) % 1;
+              const backU = (carU - metroLoop.carHalfU + 1) % 1;
+              metroLoop.curve.getPointAt(frontU, metroLoop.tmpFront);
+              metroLoop.curve.getPointAt(backU, metroLoop.tmpBack);
+              metroLoop.tmpP.copy(metroLoop.tmpFront).add(metroLoop.tmpBack).multiplyScalar(.5);
+              metroLoop.tmpT.subVectors(metroLoop.tmpFront, metroLoop.tmpBack).normalize();
+              car.position.copy(metroLoop.tmpP);
+              car.rotation.y = Math.atan2(metroLoop.tmpT.x, metroLoop.tmpT.z);
+              car.position.y -= .15 + Math.sin(t * 3 + i + carIndex * .4) * .05;
+            });
           });
       }
       spinners.forEach(s => { s.mesh.rotation[s.axis] += s.speed * .016; });
