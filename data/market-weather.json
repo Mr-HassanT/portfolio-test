@@ -1,21 +1,7 @@
 {
-  "updatedAt": "2026-06-30T11:10:57.666Z",
+  "updatedAt": "2026-06-30T13:03:04.740Z",
   "source": {
-    "weather": "Open-Meteo forecast API",
     "market": "Yahoo Finance chart API"
-  },
-  "weather": {
-    "location": "Dubai",
-    "observedAt": "2026-06-30T15:00",
-    "temperatureC": 36.3,
-    "humidityPct": 51,
-    "precipitationMm": 0,
-    "rainMm": 0,
-    "weatherCode": 0,
-    "cloudCoverPct": 16,
-    "windKmh": 16.4,
-    "isDay": true,
-    "summary": "clear"
   },
   "market": {
     "basketName": "ETF mood basket",

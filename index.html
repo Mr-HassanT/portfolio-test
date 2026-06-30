@@ -114,48 +114,41 @@
   #weatherControls{
     position:relative;width:100%;
   }
-  #weatherToggle{
+  .weather-select-row{
     width:100%;height:36px;border:3px solid var(--navy);border-radius:999px;background:rgba(255,255,255,.7);color:var(--navy);
     font-family:'Fredoka',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.02em;
     box-shadow:0 5px 0 rgba(35,49,95,.18);cursor:pointer;padding:0 .68rem;
     display:flex;align-items:center;justify-content:space-between;gap:.35rem;
   }
-  #weatherCurrent{color:#e2674f}
-  #weatherToggle .chevron{font-size:.66rem;transition:transform .18s ease}
-  #weatherControls.open #weatherToggle .chevron{transform:rotate(180deg)}
-  #weatherMenu{
-    position:absolute;right:0;top:calc(100% + 8px);width:100%;display:grid;gap:.34rem;
-    padding:.42rem;border:3px solid var(--navy);border-radius:16px;background:rgba(255,248,236,.95);
-    box-shadow:0 6px 0 rgba(35,49,95,.18),0 16px 26px rgba(35,49,95,.16);
-    opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .18s ease,transform .18s ease;
+  .weather-select-row span{flex:0 0 auto}
+  #weatherSelect{
+    min-width:0;flex:1;border:0;background:transparent;color:#e2674f;text-align:right;
+    font:inherit;cursor:pointer;outline:0;
   }
-  #weatherControls.open #weatherMenu{opacity:1;pointer-events:auto;transform:translateY(0)}
-  #weatherMenu button{
-    height:32px;border:2px solid rgba(35,49,95,.7);border-radius:999px;background:rgba(255,255,255,.68);color:var(--navy);
-    font-family:'Fredoka',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.02em;
-    cursor:pointer;padding:0 .62rem;text-align:left;
-  }
-  #weatherMenu button.active{background:var(--sun)}
+  #weatherSelect option{color:var(--navy);background:var(--cream)}
   #weatherLive{
-    position:relative;margin-top:.5rem;padding:.52rem 2.35rem .52rem .62rem;border:3px solid var(--navy);border-radius:14px;
+    position:relative;margin-top:.5rem;padding:.5rem 2.45rem .5rem .58rem;border:3px solid var(--navy);border-radius:14px;
     background:rgba(255,248,236,.92);color:var(--navy);
     box-shadow:0 5px 0 rgba(35,49,95,.16),0 14px 24px rgba(35,49,95,.12);
-    font-family:'Fredoka',sans-serif;font-weight:700;font-size:.62rem;line-height:1.25;
+    font-family:'Fredoka',sans-serif;font-weight:700;font-size:.63rem;line-height:1.25;
   }
   #weatherLive .status{display:block;color:#e2674f;letter-spacing:.07em;text-transform:uppercase}
-  #weatherLive .why{display:none}
-  #weatherLive.help-open .why{display:block;margin-top:.24rem;color:#3e4a7d}
+  #weatherLive .why{display:block;margin-top:.28rem;color:#3e4a7d;font-size:.64rem;letter-spacing:.01em}
   #weatherHelpToggle{
-    position:absolute;right:.46rem;top:.43rem;width:24px;aspect-ratio:1;border:2px solid rgba(35,49,95,.78);
+    position:absolute;right:.52rem;top:.46rem;width:26px;aspect-ratio:1;border:2px solid rgba(35,49,95,.78);
     border-radius:50%;background:#fff;color:var(--navy);font-family:'Fredoka',sans-serif;font-weight:700;
-    font-size:.8rem;line-height:1;cursor:pointer;
+    font-size:.82rem;line-height:1;cursor:pointer;
   }
   #weatherLive.help-open #weatherHelpToggle{background:var(--sun)}
   #weatherLiveHelp{
-    display:none;margin-top:.42rem;padding-top:.42rem;border-top:2px solid rgba(35,49,95,.14);
-    color:#3e4a7d;font-family:'Nunito',sans-serif;font-size:.72rem;font-weight:800;line-height:1.35;
+    display:none;margin-top:.48rem;padding-top:.48rem;border-top:2px solid rgba(35,49,95,.14);
+    color:#3e4a7d;font-family:'Nunito',sans-serif;font-size:.72rem;font-weight:800;line-height:1.32;
   }
   #weatherLive.help-open #weatherLiveHelp{display:block}
+  #weatherLiveHelp p{margin:0 0 .42rem}
+  #weatherLiveHelp ul{margin:0;display:grid;gap:.24rem;list-style:none}
+  #weatherLiveHelp li{display:grid;grid-template-columns:4.8rem 1fr;gap:.35rem}
+  #weatherLiveHelp b{font-family:'Fredoka',sans-serif;color:var(--navy)}
   #weatherLive.offline .status{color:#8a5a36}
 
   #desktopControls{
@@ -273,9 +266,11 @@
     #configToggle{right:12px;top:12px;width:42px}
     #configPanel{left:12px;right:12px;top:62px;width:auto;max-height:calc(100dvh - 178px);overflow:auto}
     #modeControls button,#waypointSelect{height:34px;font-size:.68rem}
-    #weatherToggle{height:34px;font-size:.66rem;padding:0 .62rem}
-    #weatherMenu button{height:30px;font-size:.66rem;padding:0 .55rem}
-    #weatherLive{font-size:.58rem;padding:.48rem 2.25rem .48rem .56rem}
+    .weather-select-row{height:34px;font-size:.66rem;padding:0 .62rem}
+    #weatherLive{font-size:.58rem;padding:.46rem 2.32rem .46rem .52rem}
+    #weatherLive .why{font-size:.6rem}
+    #weatherLiveHelp{font-size:.68rem}
+    #weatherLiveHelp li{grid-template-columns:4.35rem 1fr}
     #hud {
       display: grid; grid-template-columns: 1fr 1fr;
       gap: 0.4rem;
@@ -355,25 +350,33 @@
     </div>
   </div>
   <div class="config-section">
-    <span class="config-label">Weather mood</span>
-    <div id="weatherControls" aria-label="Weather mood">
-      <button id="weatherToggle" type="button" aria-haspopup="true" aria-expanded="false">
-        <span>Weather</span>
-        <span id="weatherCurrent">Live</span>
-        <span class="chevron" aria-hidden="true">v</span>
-      </button>
-      <div id="weatherMenu" role="menu" aria-label="Weather mood options">
-        <button type="button" class="active" data-weather="live" role="menuitemradio" aria-checked="true">Live</button>
-        <button type="button" data-weather="story" role="menuitemradio" aria-checked="false">Story</button>
-        <button type="button" data-weather="gold" role="menuitemradio" aria-checked="false">Gold</button>
-        <button type="button" data-weather="rain" role="menuitemradio" aria-checked="false">Rain</button>
-        <button type="button" data-weather="neon" role="menuitemradio" aria-checked="false">Neon</button>
-      </div>
+    <span class="config-label">Market weather</span>
+    <div id="weatherControls" aria-label="Market weather">
+      <label class="weather-select-row">
+        <span>Mode</span>
+        <select id="weatherSelect" aria-label="Market weather mode">
+          <option value="live" selected>Live market mood</option>
+          <option value="story">Calm / flat tape</option>
+          <option value="gold">Gold rally</option>
+          <option value="rain">Rain pullback</option>
+          <option value="storm">Storm sell-off</option>
+          <option value="neon">Neon night</option>
+        </select>
+      </label>
       <div id="weatherLive" aria-live="polite">
         <span class="status" id="weatherLiveStatus">Loading live feed</span>
-        <span class="why" id="weatherLiveWhy">Dubai weather sets the sky. SPY, QQQ and VOO set the market glow.</span>
+        <span class="why" id="weatherLiveWhy">The city reads SPY, QQQ and VOO. Market red means rough skies.</span>
         <button id="weatherHelpToggle" type="button" aria-label="Explain live weather mood" aria-expanded="false">?</button>
-        <span id="weatherLiveHelp">Live mode uses Dubai weather for clouds, rain and time of day. SPY, QQQ and VOO set the market glow, refreshed every 30 minutes, so the city can look different when you come back later.</span>
+        <div id="weatherLiveHelp">
+          <p>Live mode is market weather: SPY 45%, QQQ 35%, VOO 20%. The feed refreshes every 30 minutes, so come back later and the skyline may have a whole new mood swing.</p>
+          <ul>
+            <li><b>Gold</b><span>Above +0.25%: bulls get sunlight.</span></li>
+            <li><b>Calm</b><span>-0.25% to +0.25%: sideways tape, steady skies.</span></li>
+            <li><b>Rain</b><span>-1.00% to -0.25%: pullback drizzle.</span></li>
+            <li><b>Storm</b><span>Below -1.00%: risk-off, umbrellas out.</span></li>
+            <li><b>Neon</b><span>Manual night mode for after-hours drama.</span></li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -400,7 +403,7 @@
     <button class="pop-close" id="marketPopClose" type="button" aria-label="Close">×</button>
     <span class="meta" id="marketPopMeta">ETF market mood</span>
     <h3 id="marketPopTitle">Loading market mood</h3>
-    <p id="marketPopText">SPY, QQQ and VOO drive the city glow while Dubai weather drives the sky.</p>
+    <p id="marketPopText">SPY, QQQ and VOO drive the city weather. Green tape warms it up; red tape brings the rain.</p>
     <canvas id="marketSpark" width="720" height="190"></canvas>
   </div>
 </div>
@@ -2025,75 +2028,52 @@
   const hintEl = document.getElementById('hint'), modeControls = document.getElementById('modeControls'), touchControls = document.getElementById('touchControls');
   const configToggle = document.getElementById('configToggle'), configPanel = document.getElementById('configPanel'), configClose = document.getElementById('configClose');
   const freeRoamBtn = document.getElementById('freeRoamBtn'), resumeStoryBtn = document.getElementById('resumeStoryBtn'), waypointSelect = document.getElementById('waypointSelect');
-  const weatherControls = document.getElementById('weatherControls'), weatherToggle = document.getElementById('weatherToggle'), weatherCurrent = document.getElementById('weatherCurrent'), weatherButtons = [...weatherControls.querySelectorAll('[data-weather]')];
+  const weatherControls = document.getElementById('weatherControls'), weatherSelect = document.getElementById('weatherSelect');
   const weatherLive = document.getElementById('weatherLive'), weatherLiveStatus = document.getElementById('weatherLiveStatus'), weatherLiveWhy = document.getElementById('weatherLiveWhy');
   const weatherHelpToggle = document.getElementById('weatherHelpToggle');
   const desktopControls = document.getElementById('desktopControls');
   const storyPop = document.getElementById('storyPop'), storyPopMeta = document.getElementById('storyPopMeta'), storyPopTitle = document.getElementById('storyPopTitle'), storyPopText = document.getElementById('storyPopText');
   const marketPop = document.getElementById('marketPop'), marketPopMeta = document.getElementById('marketPopMeta'), marketPopTitle = document.getElementById('marketPopTitle'), marketPopText = document.getElementById('marketPopText');
-  const moodLabels = { live:'Live', story:'Story', cloudy:'Cloudy', gold:'Gold', rain:'Rain', neon:'Neon', storm:'Storm' };
+  const moodLabels = { live:'Live', story:'Calm', cloudy:'Cloudy', gold:'Gold', rain:'Rain', neon:'Neon', storm:'Storm' };
   const marketState = {
     ready:false,
-    weather:null,
     market:null,
     visualMood:'story',
     status:'Loading live feed',
-    why:'Dubai weather sets the sky. SPY, QQQ and VOO set the market glow.'
+    why:'The city reads SPY, QQQ and VOO. Market red means rough skies.'
   };
   const clamp01 = v => THREE.MathUtils.clamp(v, 0, 1);
   const signedPct = v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
 
-  function isRainCode(code){
-    return [51,53,55,61,63,65,80,81,82,95,96,99].includes(Number(code));
-  }
-
-  function weatherSummary(code, cloudCover, rain){
-    if((rain || 0) > 0 || isRainCode(code)) return 'rain nearby';
-    if([45,48].includes(Number(code))) return 'hazy';
-    if((cloudCover || 0) >= 70) return 'mostly cloudy';
-    if((cloudCover || 0) >= 35) return 'partly cloudy';
-    return 'clear';
-  }
-
-  function computeVisualMood(weather, market){
+  function computeVisualMood(market){
     const change = market?.compositeChangePct ?? 0;
-    const realRain = weather && ((weather.rainMm || weather.precipitationMm || 0) > 0 || isRainCode(weather.weatherCode));
-    const cloudy = (weather?.cloudCoverPct || 0) >= 62;
     marketRiskK = clamp01((-change - .25) / 1.5) * .72;
     marketGlowK = change >= 0 ? clamp01(change / 1.4) * .36 : clamp01(-change / 2.4) * .28;
 
     if(change < -1) return 'storm';
-    if(realRain || change < -.25) return 'rain';
-    if(weather && !weather.isDay) return 'neon';
-    if(cloudy) return 'cloudy';
+    if(change < -.25) return 'rain';
     if(change > .25) return 'gold';
     return 'story';
   }
 
-  function explainLiveMood(weather, market, mood){
-    const weatherText = weather
-      ? `${weather.location || 'Dubai'} ${weather.summary || weatherSummary(weather.weatherCode, weather.cloudCoverPct, weather.rainMm)} ${Math.round(weather.temperatureC)}C`
-      : 'Dubai weather unavailable';
-    const marketText = market ? `ETF basket ${signedPct(market.compositeChangePct)}` : 'ETF basket neutral';
+  function explainLiveMood(market, mood){
+    const marketText = market ? `ETF basket ${signedPct(market.compositeChangePct)}` : 'ETF basket waiting';
+    const moodName = moodLabels[mood] || 'Live';
     const moodText = {
-      storm:'risk-off market mood adds storm warning glow',
-      rain:'rain or softer ETF tape dims the skyline',
-      neon:'after-hours or night mode brings softer neon',
-      cloudy:'cloud cover keeps the city calm',
-      gold:'positive ETF tape warms the skyline',
-      story:'balanced ETF tape keeps story lighting'
-    }[mood] || 'live mode is active';
-    return { status:`${weatherText} · ${marketText}`, why:moodText };
+      storm:'Below -1.00%: risk-off, umbrellas out.',
+      rain:'Between -1.00% and -0.25%: pullback drizzle.',
+      gold:'Above +0.25%: bulls get sunlight.',
+      story:'Between -0.25% and +0.25%: sideways tape, steady skies.'
+    }[mood] || 'Live market-weather mode is active.';
+    return { status:`${marketText} -> ${moodName}`, why:moodText };
   }
 
   function applyWeatherMode(){
     if(weatherMode === 'live'){
       weatherMood = marketState.visualMood || 'story';
-      weatherCurrent.textContent = moodLabels[weatherMood] || 'Live';
       weatherLive.hidden = false;
     } else {
       weatherMood = weatherMode;
-      weatherCurrent.textContent = moodLabels[weatherMode] || weatherMode;
       weatherLive.hidden = true;
       marketRiskK = 0;
       marketGlowK = 0;
@@ -2110,52 +2090,21 @@
     weatherLiveWhy.textContent = marketState.why;
   }
 
-  async function loadWeatherFallback(){
-    const url = 'https://api.open-meteo.com/v1/forecast?latitude=25.2048&longitude=55.2708&current=temperature_2m,relative_humidity_2m,precipitation,rain,weather_code,cloud_cover,wind_speed_10m,is_day&timezone=Asia%2FDubai';
-    const response = await fetch(url);
-    if(!response.ok) throw new Error('weather fallback failed');
-    const data = await response.json();
-    const current = data.current;
-    return {
-      location:'Dubai',
-      observedAt:current.time,
-      temperatureC:current.temperature_2m,
-      humidityPct:current.relative_humidity_2m,
-      precipitationMm:current.precipitation,
-      rainMm:current.rain,
-      weatherCode:current.weather_code,
-      cloudCoverPct:current.cloud_cover,
-      windKmh:current.wind_speed_10m,
-      isDay:Boolean(current.is_day),
-      summary:weatherSummary(current.weather_code, current.cloud_cover, current.rain)
-    };
-  }
-
   async function loadMarketWeather(){
     try {
       const response = await fetch(`data/market-weather.json?v=${Date.now()}`, { cache:'no-store' });
       if(!response.ok) throw new Error('feed unavailable');
       const data = await response.json();
       marketState.ready = true;
-      marketState.weather = data.weather;
       marketState.market = data.market;
-      marketState.visualMood = computeVisualMood(data.weather, data.market);
-      Object.assign(marketState, explainLiveMood(data.weather, data.market, marketState.visualMood));
+      marketState.visualMood = computeVisualMood(data.market);
+      Object.assign(marketState, explainLiveMood(data.market, marketState.visualMood));
     } catch (error) {
-      try {
-        const weather = await loadWeatherFallback();
-        marketState.ready = false;
-        marketState.weather = weather;
-        marketState.market = null;
-        marketState.visualMood = computeVisualMood(weather, null);
-        Object.assign(marketState, explainLiveMood(weather, null, marketState.visualMood));
-        marketState.why += ' · market feed waiting for updater';
-      } catch {
-        marketState.ready = false;
-        marketState.visualMood = 'story';
-        marketState.status = 'Live feed unavailable';
-        marketState.why = 'Story lighting is active until the next data refresh.';
-      }
+      marketState.ready = false;
+      marketState.market = null;
+      marketState.visualMood = 'story';
+      marketState.status = 'ETF basket waiting';
+      marketState.why = 'Calm lighting until the next market feed refresh.';
     }
     updateLivePanel();
     applyWeatherMode();
@@ -2328,9 +2277,9 @@
     const market = marketState.market;
     marketPopTitle.textContent = market ? `ETF basket ${signedPct(market.compositeChangePct)}` : 'ETF basket waiting';
     marketPopText.textContent = market
-      ? `SPY 45%, QQQ 35%, VOO 20%. ${marketState.why}. Latest weather: ${new Date(marketState.weather?.observedAt || Date.now()).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}.`
-      : 'The city is using live Dubai weather now. Market glow will switch on when the scheduled ETF feed refreshes.';
-    marketPopMeta.textContent = marketState.ready ? 'Live market weather' : 'Weather-only fallback';
+      ? `SPY 45%, QQQ 35%, VOO 20%. ${marketState.why} This is market weather: green tape warms the skyline, red tape makes it rain.`
+      : 'The city is waiting for the ETF basket. Until the feed refreshes, the skyline stays calm.';
+    marketPopMeta.textContent = marketState.ready ? 'Live market weather' : 'Market feed waiting';
     drawMarketPop();
     marketPop.classList.add('on');
     marketPop.setAttribute('aria-hidden', 'false');
@@ -2375,7 +2324,6 @@
     if(started && mode === 'story') hintEl.classList.add('on');
     configPanel.setAttribute('aria-hidden', 'true');
     configToggle.setAttribute('aria-expanded', 'false');
-    closeWeatherMenu();
   }
 
   function toggleConfigPanel(){
@@ -2400,36 +2348,21 @@
     if(index) flyToStop(index);
     waypointSelect.value = '';
   });
-  function closeWeatherMenu(){
-    weatherControls.classList.remove('open');
-    weatherToggle.setAttribute('aria-expanded', 'false');
-  }
-  weatherToggle.addEventListener('click', () => {
-    const open = weatherControls.classList.toggle('open');
-    weatherToggle.setAttribute('aria-expanded', String(open));
-  });
-  weatherButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      weatherMode = btn.dataset.weather;
-      weatherButtons.forEach(b => b.classList.toggle('active', b === btn));
-      weatherButtons.forEach(b => b.setAttribute('aria-checked', String(b === btn)));
-      applyWeatherMode();
-      closeWeatherMenu();
-    });
+  weatherSelect.addEventListener('change', () => {
+    weatherMode = weatherSelect.value;
+    applyWeatherMode();
   });
   weatherHelpToggle.addEventListener('click', () => {
     const open = weatherLive.classList.toggle('help-open');
     weatherHelpToggle.setAttribute('aria-expanded', String(open));
   });
   document.addEventListener('click', event => {
-    if(!weatherControls.contains(event.target)) closeWeatherMenu();
     if(configPanel.classList.contains('on') && !configPanel.contains(event.target) && !configToggle.contains(event.target)){
       closeConfigPanel();
     }
   });
   document.addEventListener('keydown', event => {
     if(event.key === 'Escape'){
-      closeWeatherMenu();
       closeConfigPanel();
     }
   });

@@ -1,7 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const OUT = new URL('../data/market-weather.json', import.meta.url);
-const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast?latitude=25.2048&longitude=55.2708&current=temperature_2m,relative_humidity_2m,precipitation,rain,weather_code,cloud_cover,wind_speed_10m,is_day&timezone=Asia%2FDubai';
 const TICKERS = [
   { symbol: 'SPY', weight: 0.45 },
   { symbol: 'QQQ', weight: 0.35 },
@@ -14,14 +13,6 @@ async function fetchJson(url) {
   });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText} for ${url}`);
   return response.json();
-}
-
-function weatherSummary(code, cloudCover, rain) {
-  if (rain > 0 || [51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99].includes(code)) return 'rain nearby';
-  if ([45, 48].includes(code)) return 'hazy';
-  if (cloudCover >= 70) return 'mostly cloudy';
-  if (cloudCover >= 35) return 'partly cloudy';
-  return 'clear';
 }
 
 function marketMood(changePct) {
@@ -37,29 +28,6 @@ async function loadExisting() {
     return JSON.parse(await readFile(OUT, 'utf8'));
   } catch {
     return null;
-  }
-}
-
-async function getWeather(existing) {
-  try {
-    const data = await fetchJson(WEATHER_URL);
-    const current = data.current;
-    return {
-      location: 'Dubai',
-      observedAt: current.time,
-      temperatureC: current.temperature_2m,
-      humidityPct: current.relative_humidity_2m,
-      precipitationMm: current.precipitation,
-      rainMm: current.rain,
-      weatherCode: current.weather_code,
-      cloudCoverPct: current.cloud_cover,
-      windKmh: current.wind_speed_10m,
-      isDay: Boolean(current.is_day),
-      summary: weatherSummary(current.weather_code, current.cloud_cover, current.rain)
-    };
-  } catch (error) {
-    if (existing?.weather) return { ...existing.weather, stale: true, error: String(error.message || error) };
-    throw error;
   }
 }
 
@@ -116,16 +84,13 @@ async function getMarket(existing) {
 }
 
 const existing = await loadExisting();
-const weather = await getWeather(existing);
 const market = await getMarket(existing);
 
 const output = {
   updatedAt: new Date().toISOString(),
   source: {
-    weather: 'Open-Meteo forecast API',
     market: market.source || 'Yahoo Finance chart API'
   },
-  weather,
   market
 };
 

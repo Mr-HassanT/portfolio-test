@@ -1,4 +1,4 @@
-name: Update market weather feed
+name: Update market mood feed
 
 on:
   schedule:
@@ -26,5 +26,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/market-weather.json
-          git commit -m "Update market weather feed"
+          git commit -m "Update market mood feed"
           git push
