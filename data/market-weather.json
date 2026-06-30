@@ -1,0 +1,76 @@
+{
+  "updatedAt": "2026-06-30T11:10:57.666Z",
+  "source": {
+    "weather": "Open-Meteo forecast API",
+    "market": "Yahoo Finance chart API"
+  },
+  "weather": {
+    "location": "Dubai",
+    "observedAt": "2026-06-30T15:00",
+    "temperatureC": 36.3,
+    "humidityPct": 51,
+    "precipitationMm": 0,
+    "rainMm": 0,
+    "weatherCode": 0,
+    "cloudCoverPct": 16,
+    "windKmh": 16.4,
+    "isDay": true,
+    "summary": "clear"
+  },
+  "market": {
+    "basketName": "ETF mood basket",
+    "weights": [
+      {
+        "symbol": "SPY",
+        "weight": 0.45
+      },
+      {
+        "symbol": "QQQ",
+        "weight": 0.35
+      },
+      {
+        "symbol": "VOO",
+        "weight": 0.2
+      }
+    ],
+    "quotes": [
+      {
+        "symbol": "SPY",
+        "price": 741,
+        "previousClose": 744.39,
+        "changePct": -0.45540644017248844,
+        "currency": "USD",
+        "marketTime": "2026-06-29T20:00:00.000Z",
+        "weight": 0.45
+      },
+      {
+        "symbol": "QQQ",
+        "price": 724.08,
+        "previousClose": 737.95,
+        "changePct": -1.8795311335456337,
+        "currency": "USD",
+        "marketTime": "2026-06-29T20:00:00.000Z",
+        "weight": 0.35
+      },
+      {
+        "symbol": "VOO",
+        "price": 681.01,
+        "previousClose": 686.1,
+        "changePct": -0.7418743623378563,
+        "currency": "USD",
+        "marketTime": "2026-06-29T20:00:00.000Z",
+        "weight": 0.2
+      }
+    ],
+    "compositeChangePct": -1.011143667286163,
+    "mood": "risk-off",
+    "spark": [
+      100,
+      99.811,
+      100.159,
+      99.189,
+      101.105
+    ],
+    "source": "Yahoo Finance chart API"
+  }
+}

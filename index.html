@@ -59,6 +59,7 @@
   .pill .label{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;font-weight:800;color:#8a93b8}
   .pill .value{font-family:'Fredoka',sans-serif;font-weight:700;font-size:clamp(1rem,2.4vw,1.35rem);color:var(--navy)}
   .pill .value.up{color:#3f9181}
+  .pill .value.dn{color:#e2674f}
   #hint{
     position:fixed;left:50%;top:4.5vh;transform:translateX(-50%);z-index:6;pointer-events:none;white-space:nowrap;
     font-family:'Fredoka',sans-serif;font-weight:600;font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;
@@ -85,7 +86,7 @@
   #waypointSelect{max-width:168px;padding:0 .9rem}
   #weatherControls{
     position:fixed;right:clamp(12px,3vw,32px);top:calc(70px + 1.5vh);z-index:9;
-    width:142px;opacity:0;pointer-events:none;
+    width:242px;opacity:0;pointer-events:none;
     transition:opacity .6s ease;
   }
   #weatherControls.on{opacity:1;pointer-events:auto}
@@ -111,6 +112,15 @@
     cursor:pointer;padding:0 .62rem;text-align:left;
   }
   #weatherMenu button.active{background:var(--sun)}
+  #weatherLive{
+    margin-top:.5rem;padding:.58rem .68rem;border:3px solid var(--navy);border-radius:14px;
+    background:rgba(255,248,236,.92);color:var(--navy);
+    box-shadow:0 5px 0 rgba(35,49,95,.16),0 14px 24px rgba(35,49,95,.12);
+    font-family:'Fredoka',sans-serif;font-weight:700;font-size:.66rem;line-height:1.3;
+  }
+  #weatherLive .status{display:block;color:#e2674f;letter-spacing:.08em;text-transform:uppercase}
+  #weatherLive .why{display:block;margin-top:.22rem;color:#3e4a7d}
+  #weatherLive.offline .status{color:#8a5a36}
 
   #desktopControls{
     position:fixed;left:clamp(12px,3vw,32px);top:calc(18px + 1.5vh);z-index:9;
@@ -232,10 +242,11 @@
     #modeControls button{padding:0 .8rem}
     #waypointSelect{max-width:132px}
     #weatherControls{
-      left:auto;right:12px;top:calc(130px + 1vh);width:132px;
+      left:auto;right:12px;top:calc(130px + 1vh);width:min(232px,calc(100vw - 24px));
     }
     #weatherToggle{height:34px;font-size:.66rem;padding:0 .62rem}
     #weatherMenu button{height:30px;font-size:.66rem;padding:0 .55rem}
+    #weatherLive{font-size:.62rem;padding:.5rem .58rem}
     #hud {
       display: grid; grid-template-columns: 1fr 1fr;
       gap: 0.4rem;
@@ -308,14 +319,19 @@
 <div id="weatherControls" aria-label="Weather mood">
   <button id="weatherToggle" type="button" aria-haspopup="true" aria-expanded="false">
     <span>Weather</span>
-    <span id="weatherCurrent">Story</span>
+    <span id="weatherCurrent">Live</span>
     <span class="chevron" aria-hidden="true">v</span>
   </button>
   <div id="weatherMenu" role="menu" aria-label="Weather mood options">
-    <button type="button" class="active" data-weather="story" role="menuitemradio" aria-checked="true">Story</button>
+    <button type="button" class="active" data-weather="live" role="menuitemradio" aria-checked="true">Live</button>
+    <button type="button" data-weather="story" role="menuitemradio" aria-checked="false">Story</button>
     <button type="button" data-weather="gold" role="menuitemradio" aria-checked="false">Gold</button>
     <button type="button" data-weather="rain" role="menuitemradio" aria-checked="false">Rain</button>
     <button type="button" data-weather="neon" role="menuitemradio" aria-checked="false">Neon</button>
+  </div>
+  <div id="weatherLive" aria-live="polite">
+    <span class="status" id="weatherLiveStatus">Loading live feed</span>
+    <span class="why" id="weatherLiveWhy">Dubai weather sets the sky. SPY, QQQ and VOO set the market glow.</span>
   </div>
 </div>
 
@@ -338,9 +354,9 @@
 <div id="marketPop" class="float-pop" aria-hidden="true">
   <div class="pop-card">
     <button class="pop-close" id="marketPopClose" type="button" aria-label="Close">×</button>
-    <span class="meta">HSSN market desk</span>
-    <h3>HSSN closes green</h3>
-    <p>A tiny candlestick terminal for the city ticker: momentum positive, curiosity bid, sleep still trading at a discount.</p>
+    <span class="meta" id="marketPopMeta">ETF market mood</span>
+    <h3 id="marketPopTitle">Loading market mood</h3>
+    <p id="marketPopText">SPY, QQQ and VOO drive the city glow while Dubai weather drives the sky.</p>
     <canvas id="marketSpark" width="720" height="190"></canvas>
   </div>
 </div>
@@ -1840,8 +1856,9 @@
   scene.add(rain);
 
   function updateRain(dt){
-    const active = weatherMood === 'rain' && !reduceMotion;
-    rainMat.opacity += ((active ? .48 : 0) - rainMat.opacity) * .12;
+    const active = (weatherMood === 'rain' || weatherMood === 'storm') && !reduceMotion;
+    rainMat.color.setHex(weatherMood === 'storm' ? 0xffb3bd : 0xbfd4ff);
+    rainMat.opacity += ((active ? (weatherMood === 'storm' ? .62 : .48) : 0) - rainMat.opacity) * .12;
     rain.visible = rainMat.opacity > .01;
     if(!rain.visible) return;
     rain.position.copy(camera.position);
@@ -1867,28 +1884,36 @@
   const skyDay = new THREE.Color(0x87ceeb), skyDusk = new THREE.Color(0xffb27d), skyNight = new THREE.Color(0x1b2a5e);
   const fogDay = new THREE.Color(0xcfeaf7), fogDusk = new THREE.Color(0xf5c39a), fogNight = new THREE.Color(0x27345f);
   const weatherLooks = {
+    cloudy:{ sky:0x9ab2c6, fog:0xb9c9d2, sun:.52, ambient:.66, lights:.28, stars:0, birds:.55, cloud:0xc9d3da, sunFade:.36, moon:.02 },
     gold:{ sky:0xffc17a, fog:0xffddb2, sun:1.25, ambient:.78, lights:.18, stars:0, birds:.9, cloud:0xfff1d6, sunFade:1, moon:.02 },
     rain:{ sky:0x6f879d, fog:0x8ea3b3, sun:.18, ambient:.56, lights:.62, stars:0, birds:.16, cloud:0x718196, sunFade:.08, moon:0 },
-    neon:{ sky:0x10152f, fog:0x1d254d, sun:.08, ambient:.5, lights:1.18, stars:1, birds:0, cloud:0x24305f, sunFade:0, moon:.65 }
+    neon:{ sky:0x10152f, fog:0x1d254d, sun:.08, ambient:.5, lights:1.18, stars:1, birds:0, cloud:0x24305f, sunFade:0, moon:.65 },
+    storm:{ sky:0x463f57, fog:0x63586d, sun:.08, ambient:.46, lights:1.25, stars:.15, birds:0, cloud:0x534a5f, sunFade:0, moon:.16 }
   };
   const tmp = new THREE.Color();
   const triLerp = (a,b,c,k) => k < .5 ? tmp.copy(a).lerp(b,k*2) : tmp.copy(b).lerp(c,(k-.5)*2);
+  let marketGlowK = 0, marketRiskK = 0;
 
   function setTimeOfDay(k){
     const look = weatherLooks[weatherMood];
+    const liveGlow = weatherMode === 'live' ? marketGlowK : 0;
+    const liveRisk = weatherMode === 'live' ? marketRiskK : 0;
     if(look){
       scene.background = new THREE.Color(look.sky);
       scene.fog.color.setHex(look.fog);
-      sun.intensity = look.sun;
+      sun.intensity = Math.min(1.35, look.sun + liveGlow * .22);
       sun.color.setHex(weatherMood === 'neon' ? 0xaec4ff : 0xffe1a8);
-      ambient.intensity = look.ambient;
+      ambient.intensity = Math.min(.86, look.ambient + liveGlow * .12);
       cloudMat.color.setHex(look.cloud);
       sunCore.material.opacity = look.sunFade;
       sunGlow1.material.opacity = .35 * look.sunFade;
       sunGlow2.material.opacity = .16 * look.sunFade;
       moonCore.material.opacity = look.moon;
       moonGlow.material.opacity = .3 * look.moon;
-      buildingMats.forEach(m => m.emissiveIntensity = look.lights);
+      buildingMats.forEach(m => {
+        m.emissive.setHex(liveRisk > .45 ? 0xff6d7a : 0xffffff);
+        m.emissiveIntensity = Math.min(1.7, look.lights + liveGlow + (weatherMood === 'storm' ? .18 : 0));
+      });
       starMat.opacity = look.stars;
       birdMats.forEach(m => m.opacity = look.birds);
       return;
@@ -1912,13 +1937,16 @@
     moonGlow.material.opacity = .3 * moonShow;
 
     const lights = THREE.MathUtils.smoothstep(k, .3, .75);
-    buildingMats.forEach(m => m.emissiveIntensity = lights * .85);
+    buildingMats.forEach(m => {
+      m.emissive.setHex(liveRisk > .45 ? 0xff6d7a : 0xffffff);
+      m.emissiveIntensity = Math.min(1.45, lights * .85 + liveGlow);
+    });
     starMat.opacity = THREE.MathUtils.smoothstep(k, .6, .92);
     birdMats.forEach(m => m.opacity = 1 - lights);
   }
 
   /* ============ FLIGHT CONTROL ============ */
-  let scrollT = 0, smoothT = 0, lastScroll = 0, speedKmh = 0, started = false, bank = 0, mode = 'story', weatherMood = 'story';
+  let scrollT = 0, smoothT = 0, lastScroll = 0, speedKmh = 0, started = false, bank = 0, mode = 'story', weatherMood = 'story', weatherMode = 'live';
   const MAX_STEP = .0035;
   const lookSmooth = new THREE.Vector3(0, ALT, 0);
   const freeState = {
@@ -1953,9 +1981,139 @@
   const hintEl = document.getElementById('hint'), modeControls = document.getElementById('modeControls'), touchControls = document.getElementById('touchControls');
   const freeRoamBtn = document.getElementById('freeRoamBtn'), resumeStoryBtn = document.getElementById('resumeStoryBtn'), waypointSelect = document.getElementById('waypointSelect');
   const weatherControls = document.getElementById('weatherControls'), weatherToggle = document.getElementById('weatherToggle'), weatherCurrent = document.getElementById('weatherCurrent'), weatherButtons = [...weatherControls.querySelectorAll('[data-weather]')];
+  const weatherLive = document.getElementById('weatherLive'), weatherLiveStatus = document.getElementById('weatherLiveStatus'), weatherLiveWhy = document.getElementById('weatherLiveWhy');
   const desktopControls = document.getElementById('desktopControls');
   const storyPop = document.getElementById('storyPop'), storyPopMeta = document.getElementById('storyPopMeta'), storyPopTitle = document.getElementById('storyPopTitle'), storyPopText = document.getElementById('storyPopText');
-  const marketPop = document.getElementById('marketPop');
+  const marketPop = document.getElementById('marketPop'), marketPopMeta = document.getElementById('marketPopMeta'), marketPopTitle = document.getElementById('marketPopTitle'), marketPopText = document.getElementById('marketPopText');
+  const moodLabels = { live:'Live', story:'Story', cloudy:'Cloudy', gold:'Gold', rain:'Rain', neon:'Neon', storm:'Storm' };
+  const marketState = {
+    ready:false,
+    weather:null,
+    market:null,
+    visualMood:'story',
+    status:'Loading live feed',
+    why:'Dubai weather sets the sky. SPY, QQQ and VOO set the market glow.'
+  };
+  const clamp01 = v => THREE.MathUtils.clamp(v, 0, 1);
+  const signedPct = v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+
+  function isRainCode(code){
+    return [51,53,55,61,63,65,80,81,82,95,96,99].includes(Number(code));
+  }
+
+  function weatherSummary(code, cloudCover, rain){
+    if((rain || 0) > 0 || isRainCode(code)) return 'rain nearby';
+    if([45,48].includes(Number(code))) return 'hazy';
+    if((cloudCover || 0) >= 70) return 'mostly cloudy';
+    if((cloudCover || 0) >= 35) return 'partly cloudy';
+    return 'clear';
+  }
+
+  function computeVisualMood(weather, market){
+    const change = market?.compositeChangePct ?? 0;
+    const realRain = weather && ((weather.rainMm || weather.precipitationMm || 0) > 0 || isRainCode(weather.weatherCode));
+    const cloudy = (weather?.cloudCoverPct || 0) >= 62;
+    marketRiskK = clamp01((-change - .25) / 1.5) * .72;
+    marketGlowK = change >= 0 ? clamp01(change / 1.4) * .36 : clamp01(-change / 2.4) * .28;
+
+    if(change < -1) return 'storm';
+    if(realRain || change < -.25) return 'rain';
+    if(weather && !weather.isDay) return 'neon';
+    if(cloudy) return 'cloudy';
+    if(change > .25) return 'gold';
+    return 'story';
+  }
+
+  function explainLiveMood(weather, market, mood){
+    const weatherText = weather
+      ? `${weather.location || 'Dubai'} ${weather.summary || weatherSummary(weather.weatherCode, weather.cloudCoverPct, weather.rainMm)} ${Math.round(weather.temperatureC)}C`
+      : 'Dubai weather unavailable';
+    const marketText = market ? `ETF basket ${signedPct(market.compositeChangePct)}` : 'ETF basket neutral';
+    const moodText = {
+      storm:'risk-off market mood adds storm warning glow',
+      rain:'rain or softer ETF tape dims the skyline',
+      neon:'after-hours or night mode brings softer neon',
+      cloudy:'cloud cover keeps the city calm',
+      gold:'positive ETF tape warms the skyline',
+      story:'balanced ETF tape keeps story lighting'
+    }[mood] || 'live mode is active';
+    return { status:`${weatherText} · ${marketText}`, why:moodText };
+  }
+
+  function applyWeatherMode(){
+    if(weatherMode === 'live'){
+      weatherMood = marketState.visualMood || 'story';
+      weatherCurrent.textContent = moodLabels[weatherMood] || 'Live';
+      weatherLive.hidden = false;
+    } else {
+      weatherMood = weatherMode;
+      weatherCurrent.textContent = moodLabels[weatherMode] || weatherMode;
+      weatherLive.hidden = true;
+      marketRiskK = 0;
+      marketGlowK = 0;
+    }
+    if(weatherMood !== 'rain' && weatherMood !== 'storm'){
+      rainMat.opacity = 0;
+      rain.visible = false;
+    }
+  }
+
+  function updateLivePanel(){
+    weatherLive.classList.toggle('offline', !marketState.ready);
+    weatherLiveStatus.textContent = marketState.status;
+    weatherLiveWhy.textContent = marketState.why;
+  }
+
+  async function loadWeatherFallback(){
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=25.2048&longitude=55.2708&current=temperature_2m,relative_humidity_2m,precipitation,rain,weather_code,cloud_cover,wind_speed_10m,is_day&timezone=Asia%2FDubai';
+    const response = await fetch(url);
+    if(!response.ok) throw new Error('weather fallback failed');
+    const data = await response.json();
+    const current = data.current;
+    return {
+      location:'Dubai',
+      observedAt:current.time,
+      temperatureC:current.temperature_2m,
+      humidityPct:current.relative_humidity_2m,
+      precipitationMm:current.precipitation,
+      rainMm:current.rain,
+      weatherCode:current.weather_code,
+      cloudCoverPct:current.cloud_cover,
+      windKmh:current.wind_speed_10m,
+      isDay:Boolean(current.is_day),
+      summary:weatherSummary(current.weather_code, current.cloud_cover, current.rain)
+    };
+  }
+
+  async function loadMarketWeather(){
+    try {
+      const response = await fetch(`data/market-weather.json?v=${Date.now()}`, { cache:'no-store' });
+      if(!response.ok) throw new Error('feed unavailable');
+      const data = await response.json();
+      marketState.ready = true;
+      marketState.weather = data.weather;
+      marketState.market = data.market;
+      marketState.visualMood = computeVisualMood(data.weather, data.market);
+      Object.assign(marketState, explainLiveMood(data.weather, data.market, marketState.visualMood));
+    } catch (error) {
+      try {
+        const weather = await loadWeatherFallback();
+        marketState.ready = false;
+        marketState.weather = weather;
+        marketState.market = null;
+        marketState.visualMood = computeVisualMood(weather, null);
+        Object.assign(marketState, explainLiveMood(weather, null, marketState.visualMood));
+        marketState.why += ' · market feed waiting for updater';
+      } catch {
+        marketState.ready = false;
+        marketState.visualMood = 'story';
+        marketState.status = 'Live feed unavailable';
+        marketState.why = 'Story lighting is active until the next data refresh.';
+      }
+    }
+    updateLivePanel();
+    applyWeatherMode();
+  }
 
   function beginExperience(){
       if(started) return;
@@ -2082,26 +2240,52 @@
     g.strokeStyle = 'rgba(255,248,236,.14)'; g.lineWidth = 2;
     for(let x=40;x<W;x+=72){ g.beginPath(); g.moveTo(x,18); g.lineTo(x,H-22); g.stroke(); }
     for(let y=34;y<H;y+=40){ g.beginPath(); g.moveTo(24,y); g.lineTo(W-24,y); g.stroke(); }
-    let price = 110;
-    for(let i=0;i<14;i++){
-      const x = 54 + i*46;
-      const open = price + (Math.random()-.45)*18;
-      const close = open + 4 + Math.random()*22;
-      const high = Math.max(open, close) + 8 + Math.random()*14;
-      const low = Math.min(open, close) - 8 - Math.random()*12;
-      price = close;
-      const y = v => H - 28 - (v - 70) / 95 * (H - 48);
-      const up = close >= open;
-      g.strokeStyle = g.fillStyle = up ? '#7bdcb5' : '#ff8a73';
-      g.lineWidth = 5;
-      g.beginPath(); g.moveTo(x, y(high)); g.lineTo(x, y(low)); g.stroke();
-      g.fillRect(x-13, y(Math.max(open, close)), 26, Math.max(8, Math.abs(y(open)-y(close))));
+    const spark = marketState.market?.spark || [];
+    if(spark.length > 1){
+      const min = Math.min(...spark), max = Math.max(...spark), span = Math.max(.2, max - min);
+      const y = v => H - 30 - ((v - min) / span) * (H - 64);
+      g.strokeStyle = marketRiskK > .45 ? '#ff8a73' : '#7bdcb5';
+      g.lineWidth = 6;
+      g.beginPath();
+      spark.forEach((v, i) => {
+        const x = 50 + i * ((W - 100) / (spark.length - 1));
+        if(i) g.lineTo(x, y(v)); else g.moveTo(x, y(v));
+      });
+      g.stroke();
+      spark.forEach((v, i) => {
+        const x = 50 + i * ((W - 100) / (spark.length - 1));
+        g.fillStyle = i && v < spark[i - 1] ? '#ff8a73' : '#7bdcb5';
+        g.beginPath(); g.arc(x, y(v), 7, 0, Math.PI*2); g.fill();
+      });
+    } else {
+      let price = 110;
+      for(let i=0;i<14;i++){
+        const x = 54 + i*46;
+        const open = price + (Math.random()-.45)*18;
+        const close = open + 4 + Math.random()*22;
+        const high = Math.max(open, close) + 8 + Math.random()*14;
+        const low = Math.min(open, close) - 8 - Math.random()*12;
+        price = close;
+        const y = v => H - 28 - (v - 70) / 95 * (H - 48);
+        const up = close >= open;
+        g.strokeStyle = g.fillStyle = up ? '#7bdcb5' : '#ff8a73';
+        g.lineWidth = 5;
+        g.beginPath(); g.moveTo(x, y(high)); g.lineTo(x, y(low)); g.stroke();
+        g.fillRect(x-13, y(Math.max(open, close)), 26, Math.max(8, Math.abs(y(open)-y(close))));
+      }
     }
-    g.fillStyle = '#fff8ec'; g.font = '700 28px Fredoka, sans-serif'; g.fillText('HSSN', 34, 38);
-    g.fillStyle = '#7bdcb5'; g.fillText('+7.31%', 126, 38);
+    const pct = marketState.market?.compositeChangePct ?? 0;
+    g.fillStyle = '#fff8ec'; g.font = '700 28px Fredoka, sans-serif'; g.fillText('ETF', 34, 38);
+    g.fillStyle = pct < 0 ? '#ff8a73' : '#7bdcb5'; g.fillText(signedPct(pct), 110, 38);
   }
 
   function openMarketPop(){
+    const market = marketState.market;
+    marketPopTitle.textContent = market ? `ETF basket ${signedPct(market.compositeChangePct)}` : 'ETF basket waiting';
+    marketPopText.textContent = market
+      ? `SPY 45%, QQQ 35%, VOO 20%. ${marketState.why}. Latest weather: ${new Date(marketState.weather?.observedAt || Date.now()).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}.`
+      : 'The city is using live Dubai weather now. Market glow will switch on when the scheduled ETF feed refreshes.';
+    marketPopMeta.textContent = marketState.ready ? 'Live market weather' : 'Weather-only fallback';
     drawMarketPop();
     marketPop.classList.add('on');
     marketPop.setAttribute('aria-hidden', 'false');
@@ -2149,15 +2333,11 @@
   });
   weatherButtons.forEach(btn => {
     btn.addEventListener('click', () => {
-      weatherMood = btn.dataset.weather;
+      weatherMode = btn.dataset.weather;
       weatherButtons.forEach(b => b.classList.toggle('active', b === btn));
       weatherButtons.forEach(b => b.setAttribute('aria-checked', String(b === btn)));
-      weatherCurrent.textContent = btn.textContent;
+      applyWeatherMode();
       closeWeatherMenu();
-      if(weatherMood !== 'rain'){
-        rainMat.opacity = 0;
-        rain.visible = false;
-      }
     });
   });
   document.addEventListener('click', event => {
@@ -2172,6 +2352,8 @@
   hssnPill.style.cursor = 'pointer';
   hssnPill.style.pointerEvents = 'auto';
   hssnPill.addEventListener('click', openMarketPop);
+  updateLivePanel();
+  loadMarketWeather();
 
   const tickerItems = ['HSSN ▲ +7.31','C#/.NET ▲ +99.9','ML.NET ▲ +2.10','FIX ENGINE ▲ FILLED','SHARPE ▲ 7.0','FR-POWER ▲ +1.8','GREEKS Δ Γ Θ ν · LIVE','OTC OPTIONS ▲ PRICED','PADEL ▲ +1.2','CRICKET ▲ +0.4','MUSTANG GT ▲ 5.0L','SIDE PROJECTS ▲ SHIPPING','COFFEE ▲ +9.99','SLEEP ▼ −4.20','EM WATCHLIST ▲ OPEN'];
   document.getElementById('tape').innerHTML =
