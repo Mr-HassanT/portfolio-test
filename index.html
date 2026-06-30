@@ -67,33 +67,57 @@
     box-shadow:0 5px 0 rgba(35,49,95,.18);opacity:0;transition:opacity 1s ease .7s;
   }
   #hint.on{opacity:1}
+  #hint.quiet{opacity:0!important;transition:none!important}
+  body.config-open #hint,body.config-open #hint.on{opacity:0}
   #progress{position:fixed;top:0;left:0;height:6px;width:0%;z-index:8;border-radius:0 99px 99px 0;
     background:linear-gradient(90deg,var(--coral),var(--sun),var(--mint))}
 
-  #modeControls{
+  #configToggle{
     position:fixed;right:clamp(12px,3vw,32px);top:calc(18px + 1.5vh);z-index:9;
-    display:flex;align-items:center;gap:.55rem;opacity:0;pointer-events:none;
-    transition:opacity .6s ease;
+    width:44px;aspect-ratio:1;border:3px solid var(--navy);border-radius:50%;
+    background:rgba(255,248,236,.94);color:var(--navy);font-family:'Fredoka',sans-serif;
+    font-weight:700;font-size:1.25rem;box-shadow:0 5px 0 rgba(35,49,95,.2);
+    cursor:pointer;opacity:0;pointer-events:none;transition:opacity .6s ease,transform .16s ease,background .16s ease;
   }
-  #modeControls.on{opacity:1;pointer-events:auto}
+  #configToggle.on{opacity:1;pointer-events:auto}
+  #configToggle:hover{transform:translateY(-2px)}
+  #configToggle[aria-expanded="true"]{background:var(--mint)}
+  #configPanel{
+    position:fixed;right:clamp(12px,3vw,32px);top:calc(70px + 1.5vh);z-index:10;
+    width:min(318px,calc(100vw - 24px));padding:.75rem;border:3px solid var(--navy);
+    border-radius:18px;background:rgba(255,248,236,.96);color:var(--navy);
+    box-shadow:0 7px 0 rgba(35,49,95,.2),0 20px 34px rgba(10,16,40,.2);
+    opacity:0;pointer-events:none;transform:translateY(-6px);transition:opacity .18s ease,transform .18s ease;
+  }
+  #configPanel.on{opacity:1;pointer-events:auto;transform:translateY(0)}
+  .config-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.7rem}
+  .config-title{font-family:'Fredoka',sans-serif;font-weight:700;font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;color:#e2674f}
+  #configClose{
+    width:30px;aspect-ratio:1;border:2px solid rgba(35,49,95,.75);border-radius:50%;background:#fff;color:var(--navy);
+    font-family:'Fredoka',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;
+  }
+  .config-section{display:grid;gap:.44rem}
+  .config-section + .config-section{margin-top:.7rem;padding-top:.65rem;border-top:2px solid rgba(35,49,95,.14)}
+  .config-label-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+  .config-label{font-family:'Fredoka',sans-serif;font-weight:700;font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:#7b84ad}
+  #modeControls{
+    display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:.42rem;
+  }
   #modeControls button,#waypointSelect{
-    height:42px;border:3px solid var(--navy);border-radius:999px;background:var(--cream);color:var(--navy);
-    font-family:'Fredoka',sans-serif;font-weight:700;font-size:.82rem;letter-spacing:.03em;
+    height:36px;border:3px solid var(--navy);border-radius:999px;background:var(--cream);color:var(--navy);
+    font-family:'Fredoka',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.03em;
     box-shadow:0 5px 0 rgba(35,49,95,.2);cursor:pointer;
   }
-  #modeControls button{padding:0 1.15rem}
+  #modeControls button{grid-column:1 / -1;padding:0 .8rem}
   #modeControls button.active{background:var(--mint)}
-  #waypointSelect{max-width:168px;padding:0 .9rem}
+  #waypointSelect{grid-column:1 / -1;width:100%;max-width:none;padding:0 .8rem}
   #weatherControls{
-    position:fixed;right:clamp(12px,3vw,32px);top:calc(70px + 1.5vh);z-index:9;
-    width:242px;opacity:0;pointer-events:none;
-    transition:opacity .6s ease;
+    position:relative;width:100%;
   }
-  #weatherControls.on{opacity:1;pointer-events:auto}
   #weatherToggle{
-    width:100%;height:38px;border:3px solid var(--navy);border-radius:999px;background:rgba(255,248,236,.92);color:var(--navy);
+    width:100%;height:36px;border:3px solid var(--navy);border-radius:999px;background:rgba(255,255,255,.7);color:var(--navy);
     font-family:'Fredoka',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.02em;
-    box-shadow:0 5px 0 rgba(35,49,95,.18);cursor:pointer;padding:0 .72rem;
+    box-shadow:0 5px 0 rgba(35,49,95,.18);cursor:pointer;padding:0 .68rem;
     display:flex;align-items:center;justify-content:space-between;gap:.35rem;
   }
   #weatherCurrent{color:#e2674f}
@@ -113,13 +137,25 @@
   }
   #weatherMenu button.active{background:var(--sun)}
   #weatherLive{
-    margin-top:.5rem;padding:.58rem .68rem;border:3px solid var(--navy);border-radius:14px;
+    position:relative;margin-top:.5rem;padding:.52rem 2.35rem .52rem .62rem;border:3px solid var(--navy);border-radius:14px;
     background:rgba(255,248,236,.92);color:var(--navy);
     box-shadow:0 5px 0 rgba(35,49,95,.16),0 14px 24px rgba(35,49,95,.12);
-    font-family:'Fredoka',sans-serif;font-weight:700;font-size:.66rem;line-height:1.3;
+    font-family:'Fredoka',sans-serif;font-weight:700;font-size:.62rem;line-height:1.25;
   }
-  #weatherLive .status{display:block;color:#e2674f;letter-spacing:.08em;text-transform:uppercase}
-  #weatherLive .why{display:block;margin-top:.22rem;color:#3e4a7d}
+  #weatherLive .status{display:block;color:#e2674f;letter-spacing:.07em;text-transform:uppercase}
+  #weatherLive .why{display:none}
+  #weatherLive.help-open .why{display:block;margin-top:.24rem;color:#3e4a7d}
+  #weatherHelpToggle{
+    position:absolute;right:.46rem;top:.43rem;width:24px;aspect-ratio:1;border:2px solid rgba(35,49,95,.78);
+    border-radius:50%;background:#fff;color:var(--navy);font-family:'Fredoka',sans-serif;font-weight:700;
+    font-size:.8rem;line-height:1;cursor:pointer;
+  }
+  #weatherLive.help-open #weatherHelpToggle{background:var(--sun)}
+  #weatherLiveHelp{
+    display:none;margin-top:.42rem;padding-top:.42rem;border-top:2px solid rgba(35,49,95,.14);
+    color:#3e4a7d;font-family:'Nunito',sans-serif;font-size:.72rem;font-weight:800;line-height:1.35;
+  }
+  #weatherLive.help-open #weatherLiveHelp{display:block}
   #weatherLive.offline .status{color:#8a5a36}
 
   #desktopControls{
@@ -234,19 +270,12 @@
   @media (prefers-reduced-motion: reduce){ #ignition,#finale,#hud,#hint{transition:none} #ticker .tape{animation:none} }
 
   @media (max-width: 768px) {
-    #modeControls{
-      left:50%;right:auto;top:calc(84px + 1vh);transform:translateX(-50%);
-      justify-content:center;width:calc(100% - 24px);
-    }
-    #modeControls button,#waypointSelect{height:38px;font-size:.76rem}
-    #modeControls button{padding:0 .8rem}
-    #waypointSelect{max-width:132px}
-    #weatherControls{
-      left:auto;right:12px;top:calc(130px + 1vh);width:min(232px,calc(100vw - 24px));
-    }
+    #configToggle{right:12px;top:12px;width:42px}
+    #configPanel{left:12px;right:12px;top:62px;width:auto;max-height:calc(100dvh - 178px);overflow:auto}
+    #modeControls button,#waypointSelect{height:34px;font-size:.68rem}
     #weatherToggle{height:34px;font-size:.66rem;padding:0 .62rem}
     #weatherMenu button{height:30px;font-size:.66rem;padding:0 .55rem}
-    #weatherLive{font-size:.62rem;padding:.5rem .58rem}
+    #weatherLive{font-size:.58rem;padding:.48rem 2.25rem .48rem .56rem}
     #hud {
       display: grid; grid-template-columns: 1fr 1fr;
       gap: 0.4rem;
@@ -303,35 +332,50 @@
   </div>
 </div>
 
-<div id="modeControls">
-  <button id="freeRoamBtn" type="button">Free roam</button>
-  <button id="resumeStoryBtn" type="button" hidden>Story</button>
-  <select id="waypointSelect" aria-label="Visit a stop" hidden>
-    <option value="">Visit stop</option>
-    <option value="1">Taylor's</option>
-    <option value="2">Al Ramz</option>
-    <option value="3">IRH</option>
-    <option value="4">Toolbox</option>
-    <option value="5">After Hours</option>
-  </select>
-</div>
+<button id="configToggle" type="button" aria-label="Open city settings" aria-expanded="false" title="City settings">⚙</button>
 
-<div id="weatherControls" aria-label="Weather mood">
-  <button id="weatherToggle" type="button" aria-haspopup="true" aria-expanded="false">
-    <span>Weather</span>
-    <span id="weatherCurrent">Live</span>
-    <span class="chevron" aria-hidden="true">v</span>
-  </button>
-  <div id="weatherMenu" role="menu" aria-label="Weather mood options">
-    <button type="button" class="active" data-weather="live" role="menuitemradio" aria-checked="true">Live</button>
-    <button type="button" data-weather="story" role="menuitemradio" aria-checked="false">Story</button>
-    <button type="button" data-weather="gold" role="menuitemradio" aria-checked="false">Gold</button>
-    <button type="button" data-weather="rain" role="menuitemradio" aria-checked="false">Rain</button>
-    <button type="button" data-weather="neon" role="menuitemradio" aria-checked="false">Neon</button>
+<div id="configPanel" aria-label="City settings" aria-hidden="true">
+  <div class="config-head">
+    <span class="config-title">City settings</span>
+    <button id="configClose" type="button" aria-label="Close city settings">×</button>
   </div>
-  <div id="weatherLive" aria-live="polite">
-    <span class="status" id="weatherLiveStatus">Loading live feed</span>
-    <span class="why" id="weatherLiveWhy">Dubai weather sets the sky. SPY, QQQ and VOO set the market glow.</span>
+  <div class="config-section">
+    <span class="config-label">Tour mode</span>
+    <div id="modeControls">
+      <button id="freeRoamBtn" type="button">Free roam</button>
+      <button id="resumeStoryBtn" type="button" hidden>Story</button>
+      <select id="waypointSelect" aria-label="Visit a stop" hidden>
+        <option value="">Visit stop</option>
+        <option value="1">Taylor's</option>
+        <option value="2">Al Ramz</option>
+        <option value="3">IRH</option>
+        <option value="4">Toolbox</option>
+        <option value="5">After Hours</option>
+      </select>
+    </div>
+  </div>
+  <div class="config-section">
+    <span class="config-label">Weather mood</span>
+    <div id="weatherControls" aria-label="Weather mood">
+      <button id="weatherToggle" type="button" aria-haspopup="true" aria-expanded="false">
+        <span>Weather</span>
+        <span id="weatherCurrent">Live</span>
+        <span class="chevron" aria-hidden="true">v</span>
+      </button>
+      <div id="weatherMenu" role="menu" aria-label="Weather mood options">
+        <button type="button" class="active" data-weather="live" role="menuitemradio" aria-checked="true">Live</button>
+        <button type="button" data-weather="story" role="menuitemradio" aria-checked="false">Story</button>
+        <button type="button" data-weather="gold" role="menuitemradio" aria-checked="false">Gold</button>
+        <button type="button" data-weather="rain" role="menuitemradio" aria-checked="false">Rain</button>
+        <button type="button" data-weather="neon" role="menuitemradio" aria-checked="false">Neon</button>
+      </div>
+      <div id="weatherLive" aria-live="polite">
+        <span class="status" id="weatherLiveStatus">Loading live feed</span>
+        <span class="why" id="weatherLiveWhy">Dubai weather sets the sky. SPY, QQQ and VOO set the market glow.</span>
+        <button id="weatherHelpToggle" type="button" aria-label="Explain live weather mood" aria-expanded="false">?</button>
+        <span id="weatherLiveHelp">Live mode uses Dubai weather for clouds, rain and time of day. SPY, QQQ and VOO set the market glow, refreshed every 30 minutes, so the city can look different when you come back later.</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1979,9 +2023,11 @@
   const hssnLabelEl = document.getElementById('hssnLabel'), hssnSuffixEl = document.getElementById('hssnSuffix');
   const hssnEl = document.getElementById('hssn');
   const hintEl = document.getElementById('hint'), modeControls = document.getElementById('modeControls'), touchControls = document.getElementById('touchControls');
+  const configToggle = document.getElementById('configToggle'), configPanel = document.getElementById('configPanel'), configClose = document.getElementById('configClose');
   const freeRoamBtn = document.getElementById('freeRoamBtn'), resumeStoryBtn = document.getElementById('resumeStoryBtn'), waypointSelect = document.getElementById('waypointSelect');
   const weatherControls = document.getElementById('weatherControls'), weatherToggle = document.getElementById('weatherToggle'), weatherCurrent = document.getElementById('weatherCurrent'), weatherButtons = [...weatherControls.querySelectorAll('[data-weather]')];
   const weatherLive = document.getElementById('weatherLive'), weatherLiveStatus = document.getElementById('weatherLiveStatus'), weatherLiveWhy = document.getElementById('weatherLiveWhy');
+  const weatherHelpToggle = document.getElementById('weatherHelpToggle');
   const desktopControls = document.getElementById('desktopControls');
   const storyPop = document.getElementById('storyPop'), storyPopMeta = document.getElementById('storyPopMeta'), storyPopTitle = document.getElementById('storyPopTitle'), storyPopText = document.getElementById('storyPopText');
   const marketPop = document.getElementById('marketPop'), marketPopMeta = document.getElementById('marketPopMeta'), marketPopTitle = document.getElementById('marketPopTitle'), marketPopText = document.getElementById('marketPopText');
@@ -2122,8 +2168,7 @@
       document.getElementById('hud').classList.add('on');
       hintEl.classList.add('on');
       document.getElementById('ticker').classList.add('on');
-      modeControls.classList.add('on');
-      weatherControls.classList.add('on');
+      configToggle.classList.add('on');
       scrollTo({ top:0 });
   }
 
@@ -2314,10 +2359,42 @@
     }
   }
 
+  function openConfigPanel(){
+    configPanel.classList.add('on');
+    document.body.classList.add('config-open');
+    hintEl.classList.add('quiet');
+    hintEl.classList.remove('on');
+    configPanel.setAttribute('aria-hidden', 'false');
+    configToggle.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeConfigPanel(){
+    configPanel.classList.remove('on');
+    document.body.classList.remove('config-open');
+    hintEl.classList.remove('quiet');
+    if(started && mode === 'story') hintEl.classList.add('on');
+    configPanel.setAttribute('aria-hidden', 'true');
+    configToggle.setAttribute('aria-expanded', 'false');
+    closeWeatherMenu();
+  }
+
+  function toggleConfigPanel(){
+    if(configPanel.classList.contains('on')) closeConfigPanel();
+    else openConfigPanel();
+  }
+
   document.getElementById('startBtn').addEventListener('click', beginExperience);
-  freeRoamBtn.addEventListener('click', enterFreeRoam);
+  configToggle.addEventListener('click', toggleConfigPanel);
+  configClose.addEventListener('click', closeConfigPanel);
+  freeRoamBtn.addEventListener('click', () => {
+    enterFreeRoam();
+    closeConfigPanel();
+  });
   document.getElementById('finaleRoamBtn').addEventListener('click', enterFreeRoam);
-  resumeStoryBtn.addEventListener('click', exitFreeRoam);
+  resumeStoryBtn.addEventListener('click', () => {
+    exitFreeRoam();
+    closeConfigPanel();
+  });
   waypointSelect.addEventListener('change', () => {
     const index = Number(waypointSelect.value);
     if(index) flyToStop(index);
@@ -2340,11 +2417,21 @@
       closeWeatherMenu();
     });
   });
+  weatherHelpToggle.addEventListener('click', () => {
+    const open = weatherLive.classList.toggle('help-open');
+    weatherHelpToggle.setAttribute('aria-expanded', String(open));
+  });
   document.addEventListener('click', event => {
     if(!weatherControls.contains(event.target)) closeWeatherMenu();
+    if(configPanel.classList.contains('on') && !configPanel.contains(event.target) && !configToggle.contains(event.target)){
+      closeConfigPanel();
+    }
   });
   document.addEventListener('keydown', event => {
-    if(event.key === 'Escape') closeWeatherMenu();
+    if(event.key === 'Escape'){
+      closeWeatherMenu();
+      closeConfigPanel();
+    }
   });
   document.getElementById('storyPopClose').addEventListener('click', closeStoryPop);
   document.getElementById('marketPopClose').addEventListener('click', closeMarketPop);
