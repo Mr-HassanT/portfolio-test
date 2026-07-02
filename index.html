@@ -60,6 +60,18 @@
   .pill .value{font-family:'Fredoka',sans-serif;font-weight:700;font-size:clamp(1rem,2.4vw,1.35rem);color:var(--navy)}
   .pill .value.up{color:#3f9181}
   .pill .value.dn{color:#e2674f}
+  #skyPill{cursor:pointer;pointer-events:auto;transition:transform .15s ease}
+  #skyPill:hover{transform:translateY(-2px)}
+  #skyPill:focus-visible{outline:3px solid var(--navy);outline-offset:3px}
+  #weatherToast{
+    position:fixed;left:50%;top:calc(4.5vh + 58px);transform:translateX(-50%) translateY(-8px);z-index:7;pointer-events:none;
+    max-width:min(620px,92vw);text-align:center;
+    font-family:'Fredoka',sans-serif;font-weight:600;font-size:.82rem;letter-spacing:.03em;
+    color:var(--navy);background:var(--cream);border:3px solid var(--navy);border-radius:18px;padding:.7rem 1.3rem;
+    box-shadow:0 6px 0 rgba(35,49,95,.18),0 16px 28px rgba(35,49,95,.2);
+    opacity:0;transition:opacity .7s ease,transform .7s ease;
+  }
+  #weatherToast.on{opacity:1;transform:translateX(-50%) translateY(0)}
   #hint{
     position:fixed;left:50%;top:4.5vh;transform:translateX(-50%);z-index:6;pointer-events:none;white-space:nowrap;
     font-family:'Fredoka',sans-serif;font-weight:600;font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;
@@ -306,7 +318,7 @@
 <div id="ignition">
   <div class="sub">✦ the story of a quant developer ✦</div>
   <h1>Welcome to<br>Hassan City</h1>
-  <p>A flying tour through my work and interests - past market skylines, career milestones, side projects, and one very golden bank. We lift off at the opening bell and land under the stars.</p>
+  <p>A flying tour through my story - university, trading desks, machine learning, and the side quests in between. One thing before takeoff: this city's weather is live. The sky tracks the US market (SPY, QQQ, VOO) - green days glow, red days rain. We lift off at the opening bell and land under the stars.</p>
   <button id="startBtn">Take Off ✈</button>
 </div>
 
@@ -315,7 +327,10 @@
   <div class="pill"><span class="label" id="clockLabel">Time</span><span class="value" id="clock">15:00</span></div>
   <div class="pill"><span class="label" id="districtLabel">Stop</span><span class="value"><span id="districtNo">0</span><span id="districtSuffix">/6</span></span></div>
   <div class="pill"><span class="label" id="hssnLabel">HSSN</span><span class="value up"><span id="hssn">100.00</span><span id="hssnSuffix"> ▲</span></span></div>
+  <div class="pill" id="skyPill" role="button" tabindex="0" title="Live market weather - click for details"><span class="label">Sky · Live</span><span class="value" id="skyValue">⛅ …</span></div>
 </div>
+
+<div id="weatherToast" aria-live="polite"></div>
 
 <div id="finale">
   <div class="card">
@@ -547,7 +562,7 @@
   const chapters = [
     { t:.05, carrier:'blimp', tag:'WELCOME ABOARD', title:"HI, I'M HASSAN", sub:'Muhammad Hassan Tariq · Quantitative Developer · Abu Dhabi', accent:'#e2674f',
       foot:'TICKER: HSSN · SECTOR: QUANT DEV · ANALYST RATING: STRONG BUY',
-      lines:['I design and build high-performance trading','systems and ML models that run on live','markets. This city is my story - every','billboard, bank and blimp below is true.','The skyline is only slightly exaggerated.'] },
+      lines:['I build trading systems and ML models that','run on live US markets - and so does this','city. The weather here is real: the sky','tracks SPY, QQQ and VOO right now.','Green tape shines. Red tape rains.'] },
     { t:.24, carrier:'heli', tag:'STOP 1 · WHERE IT BEGAN', title:"TAYLOR'S UNIVERSITY", sub:'BSc (Hons) Computer Science · AI & Cybersecurity', accent:'#5f7fc0',
       foot:'IPO DEC 2022 · PROSPECTUS: FIRST-CLASS FUNDAMENTALS',
       lines:['Graduated December 2022 after a foundation','year at Heriot-Watt University Dubai.','Specialised in AI & Cybersecurity, then','went straight for the markets.','Certified: Azure AZ-900 · CISI (UAE).'] },
@@ -562,7 +577,7 @@
       lines:['C# · .NET · Blazor · ML.NET · WPF · SQL','Python · Databricks · FIX Protocol','Azure DevOps · PowerShell · MSSQL','Currently evaluating PostgreSQL & AWS','for the next generation of the stack.'] },
     { t:.90, carrier:'party', tag:'STOP 5 · AFTER HOURS', title:'LIFE OUTSIDE CODE', sub:'Sports, cars, projects & markets', accent:'#a55f9c',
       foot:'SIDE PROJECTS · SPORTS · MARKETS · CARS',
-      lines:['Padel and cricket keep weekends competitive.','The Mustang GT scratches the tuning itch.','Personal coding projects are where I test','new ideas, and the emerging-markets','watchlist stays open in the background.'] },
+      lines:['Padel and cricket keep weekends competitive','- the glass court and oval are right below.','The Mustang GT idles in the garage nearby.','Personal projects (like this city) get built','after hours, while the market sleeps.'] },
     { t:.97, carrier:'helipad', tag:'FINAL STOP', title:"LET'S TALK", sub:'Markets · code · big ideas', accent:'#e2674f',
       foot:'LINKEDIN.COM/IN/HASSANTQ · OPEN TO GREAT CONVERSATIONS',
       lines:['The landing pad is just ahead. If you','trade, build, or want to compare notes','on ML systems, options risk, or markets,','send a message and bring your best','question.'] },
@@ -581,16 +596,18 @@
 
   /* ============ CARTOON FACADES & BILLBOARDS ============ */
   const billboardStories = {
-    capital:{ meta:'City exchange', title:'Hassan Tariq', text:'The main ticker for the city: quantitative development, market systems, and a portfolio that treats code like infrastructure.' },
-    sharpe:{ meta:'Research district', title:'Research to production', text:'Models are only useful when they survive the messy trip from notebook to live desk. This sign marks that handoff.' },
-    fix:{ meta:'Execution lane', title:'Tariq FIX Engine', text:'A nod to the proprietary FIX work: automated execution, cleaner order flow, and systems built for trading desks.' },
-    candles:{ meta:'HSSN terminal', title:'Ticker with a pulse', text:'The city stock is imaginary, but the candlesticks are the theme: markets, signals, risk, and a little green bias.' },
-    greeks:{ meta:'Options desk', title:'Greeks in production', text:'Delta, gamma, theta, vega, rho: the risk alphabet behind the OTC options platform and daily pricing work.' },
-    news:{ meta:'Research wire', title:'Signals shipped', text:'A reminder that the best research does not stay trapped in slides. It becomes a pipeline, a signal, or a tool.' },
-    projects:{ meta:'After-hours lab', title:'Personal coding projects', text:'Small apps, experiments, tools, and prototypes where new ideas get stress-tested before they become serious.' },
-    hire:{ meta:'Landing pad', title:"Let's build", text:'Markets, code, ML systems, and big ideas. This is the city putting up a sign for the next good conversation.' },
-    cloud:{ meta:'Cloud district', title:'Cloud research stack', text:'Databricks, Azure, and AWS-ready thinking: research workflows built to grow past one machine.' },
-    ai:{ meta:'Model avenue', title:'ML in production', text:'Machine learning with a job to do: signals, risk, pricing, and decision support for real market workflows.' }
+    capital:{ meta:'City exchange', title:'Hassan Tariq', text:"Quant developer, market systems builder, and mayor of this skyline. HSSN is the one ticker in town guaranteed to close green - I audited it myself." },
+    sharpe:{ meta:'Research district', title:'Research to production', text:'Backtests are easy; production is where a model earns its Sharpe. This district is where my notebooks grow up, get jobs, and start paying rent.' },
+    fix:{ meta:'Execution lane', title:'Tariq FIX Engine', text:'A proprietary FIX engine built from scratch at Al Ramz: orders in, fills out, clean flow throughout. Coffee consumption remains unmodelled.' },
+    candles:{ meta:'HSSN terminal', title:'Ticker with a pulse', text:'The stock is imaginary, but the habit is real: candles, signals, risk - and a mild, thoroughly documented green bias.' },
+    greeks:{ meta:'Options desk', title:'Greeks in production', text:'Delta, gamma, theta, vega, rho - the risk alphabet behind the OTC options platform I built. The only Greeks in town repriced daily before breakfast.' },
+    news:{ meta:'Research wire', title:'Signals shipped', text:'BREAKING: research has left the slide deck and shipped to the desk. Analysts stunned. The pipeline remains unbothered and fully automated.' },
+    projects:{ meta:'After-hours lab', title:'Personal coding projects', text:'The after-hours lab: side projects and prototypes get stress-tested at night so they can act professional by day. This website is one of them.' },
+    hire:{ meta:'Landing pad', title:"Let's build", text:'Markets, code, ML systems, big ideas - the vacancy sign is always lit for a good conversation. Bring your best question; I trade in those.' },
+    cloud:{ meta:'Cloud district', title:'Cloud research stack', text:'Databricks pipelines and Azure by day, AWS curiosity by night. Research workflows built to outgrow a single machine - unlike this billboard.' },
+    ai:{ meta:'Model avenue', title:'ML in production', text:'ML.NET models with actual jobs: signals, risk, and pricing on live equities. No chatbots were harmed in the making of this desk.' },
+    padel:{ meta:'Weekend derivatives', title:'Padel & cricket', text:'Weekend risk book: padel off the glass walls (high gamma, questionable hedging at the net) and cricket cover drives with strictly discretionary footwork.' },
+    mustang:{ meta:'Garage district', title:'Mustang GT', text:'5.0 litres of strictly discretionary horsepower. The one long position in the portfolio that is never, ever getting closed.' }
   };
   function facadePair(base, baseDark){
     const W = 64, H = 128;
@@ -637,8 +654,8 @@
     const g = c.getContext('2d');
     g.textAlign = 'center';
     g.fillStyle = '#0a0f1d'; g.fillRect(0,0,512,256);
-    const accents = { capital:'#ffd166', sharpe:'#7bdcb5', fix:'#ff8a73', candles:'#3f9181', greeks:'#ffd166', news:'#ff8a73', projects:'#a8c8f5', hire:'#7bdcb5' };
-    g.strokeStyle = accents[type]; g.lineWidth = 10;
+    const accents = { capital:'#ffd166', sharpe:'#7bdcb5', fix:'#ff8a73', candles:'#3f9181', greeks:'#ffd166', news:'#ff8a73', projects:'#a8c8f5', hire:'#7bdcb5', cloud:'#a8c8f5', ai:'#ffd166', padel:'#7bdcb5', mustang:'#ff5555' };
+    g.strokeStyle = accents[type] || '#ffd166'; g.lineWidth = 10;
     roundRect(g, 10, 10, 492, 236, 18); g.stroke();
     g.strokeStyle = 'rgba(255,255,255,.15)'; g.lineWidth = 3;
     roundRect(g, 24, 24, 464, 208, 12); g.stroke();
@@ -695,9 +712,19 @@
     } else if(type === 'ai'){
       bbText(g, 'ML IN PRODUCTION', 110, 60, '700 {s}px Fredoka, sans-serif', '#ffd166');
       bbText(g, 'SIGNALS · RISK · PRICING MODELS', 160, 26, '800 {s}px Nunito, sans-serif', '#fff8ec');
+    } else if(type === 'padel'){
+      bbText(g, 'PADEL & CRICKET', 100, 56, '700 {s}px Fredoka, sans-serif', '#7bdcb5');
+      bbText(g, 'WEEKEND RISK BOOK · FULLY DEPLOYED', 148, 26, '800 {s}px Nunito, sans-serif', '#fff8ec');
+      bbText(g, 'HIGH GAMMA OFF THE GLASS', 196, 24, '800 {s}px Nunito, sans-serif', '#ffd166');
+    } else if(type === 'mustang'){
+      bbText(g, 'MUSTANG GT · 5.0L', 100, 56, '700 {s}px Fredoka, sans-serif', '#ff5555');
+      bbText(g, 'THE ONE POSITION NEVER CLOSED', 150, 26, '800 {s}px Nunito, sans-serif', '#fff8ec');
+      g.strokeStyle = '#fff8ec'; g.lineWidth = 6;
+      g.beginPath(); g.moveTo(120, 210); g.lineTo(200, 210); g.stroke();
+      g.beginPath(); g.moveTo(312, 210); g.lineTo(392, 210); g.stroke();
     }
   }
-  ['capital','sharpe','fix','candles','greeks','news','projects','hire','cloud','ai'].forEach(type => {
+  ['capital','sharpe','fix','candles','greeks','news','projects','hire','cloud','ai','padel','mustang'].forEach(type => {
     const c = document.createElement('canvas'); c.width = 512; c.height = 256;
     drawBillboard(c, type);
     const tex = new THREE.CanvasTexture(c);
@@ -830,7 +857,15 @@
     scene.add(g);
   }
 
-  function bankLogoTexture(label = 'BANK', accent = '#c98a12'){
+  const bankNames = [
+    { label:'BANK OF HASSAN', sub:'VAULTS FULL OF IDEAS' },
+    { label:'SHARPE & SONS', sub:'RISK-ADJUSTED SINCE 2022' },
+    { label:'GAMMA SAVINGS', sub:'WE COMPOUND DAILY' },
+    { label:'DELTA TRUST', sub:'SMALL MOVES, BIG HEDGES' },
+    { label:'FIX & CO. CLEARING', sub:'ALL ORDERS FILLED' },
+    { label:'THETA MUTUAL', sub:'TIME IS ON OUR SIDE' }
+  ];
+  function bankLogoTexture(label = 'BANK', accent = '#c98a12', sub = 'CITY BRANCH'){
     const c = document.createElement('canvas'); c.width = 640; c.height = 220;
     const g = c.getContext('2d');
     g.fillStyle = '#fff8ec'; g.fillRect(0,0,c.width,c.height);
@@ -850,7 +885,7 @@
 
     g.font = '800 27px Nunito, sans-serif';
     g.fillStyle = '#8a93b8';
-    g.fillText('CITY BRANCH', 170, 150);
+    g.fillText(sub, 170, 150);
     const tex = new THREE.CanvasTexture(c);
     tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
     return tex;
@@ -869,41 +904,84 @@
 
   function makeGroundBank(x, z) {
     const g = new THREE.Group();
-    const baseW = 18 + Math.random()*5, baseH = 11 + Math.random()*5, baseD = 15;
+    const name = bankNames[(Math.random()*bankNames.length)|0];
+    const baseW = 22 + Math.random()*4, baseH = 12 + Math.random()*3, baseD = 16;
     const stoneMat = new THREE.MeshLambertMaterial({ color:0xf1eadc });
     const goldMat = new THREE.MeshLambertMaterial({ color:0xc98a12, side:THREE.DoubleSide });
+    const glassMat = new THREE.MeshLambertMaterial({ color:0x2a3a6e });
+
+    // grand stairs up to the portico
+    const stepTop = 1.5;
+    for(let i=0;i<3;i++){
+      const st = new THREE.Mesh(new THREE.BoxGeometry(baseW*(.94 - i*.05), .5, 3 - i*.7), stoneMat);
+      st.position.set(0, .25 + i*.5, baseD/2 + 4.6 - i*.85);
+      g.add(st);
+    }
+
+    // main hall
     const base = new THREE.Mesh(new THREE.BoxGeometry(baseW, baseH, baseD), stoneMat);
     base.position.y = baseH/2;
     g.add(base);
 
-    const cap = new THREE.Mesh(new THREE.BoxGeometry(baseW + 1.4, 1.1, baseD + 1.2), goldMat);
-    cap.position.y = baseH + .55;
-    g.add(cap);
-
-    const portico = new THREE.Mesh(new THREE.BoxGeometry(baseW*.86, 1.1, 3.3), goldMat);
-    portico.position.set(0, baseH + 1.35, baseD/2 + 1.25);
-    g.add(portico);
-
-    const pediment = makePediment(baseW*.88, 4.5, goldMat);
-    pediment.position.set(0, baseH + 1.75, baseD/2 + 2.98);
-    g.add(pediment);
-
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(baseW*.58, baseW*.58/2.84), new THREE.MeshBasicMaterial({ map:bankLogoTexture('BANK') }));
-    sign.position.set(0, baseH*.64, baseD/2 + .06);
-    g.add(sign);
-
-    for(let i=0; i<4; i++){
-      const col = new THREE.Mesh(new THREE.CylinderGeometry(.62,.72,baseH*.78,10), stoneMat);
-      col.position.set(-baseW/2 + 2.3 + i*(baseW-4.6)/3, baseH*.39, baseD/2 + 2.3);
-      g.add(col);
-      const foot = new THREE.Mesh(new THREE.BoxGeometry(1.7,.55,1.45), goldMat);
-      foot.position.set(col.position.x, .28, baseD/2 + 2.3);
-      g.add(foot);
+    // 6-column portico with capitals and bases
+    const porticoZ = baseD/2 + 2.6, colH = baseH*.86;
+    for(let i=0; i<6; i++){
+      const cx = -baseW/2 + 2.1 + i*(baseW - 4.2)/5;
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(.55, .66, colH, 10), stoneMat);
+      col.position.set(cx, stepTop + colH/2, porticoZ);
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(1.7, .55, 1.7), goldMat);
+      cap.position.set(cx, stepTop + colH + .27, porticoZ);
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(1.75, .5, 1.75), stoneMat);
+      foot.position.set(cx, stepTop + .25, porticoZ);
+      g.add(col, cap, foot);
     }
 
-    const door = new THREE.Mesh(new THREE.BoxGeometry(3.2, baseH*.42, .25), navyMat);
-    door.position.set(0, baseH*.21, baseD/2 + .2);
-    g.add(door);
+    // entablature spanning facade to columns, carrying the name plate
+    const beamY = stepTop + colH + .55 + .8;
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(baseW + 1.4, 1.6, porticoZ - baseD/2 + 2.4), stoneMat);
+    beam.position.set(0, beamY, baseD/2 + (porticoZ - baseD/2)/2 + .55);
+    g.add(beam);
+    const frieze = new THREE.Mesh(new THREE.PlaneGeometry(baseW*.72, baseW*.72/2.9), new THREE.MeshBasicMaterial({ map:bankLogoTexture(name.label, '#c98a12', name.sub) }));
+    frieze.position.set(0, beamY, porticoZ + 1.78);
+    g.add(frieze);
+
+    // triangular pediment + coin medallion
+    const pediment = makePediment(baseW + 1.4, 5.2, goldMat);
+    pediment.position.set(0, beamY + .8, porticoZ + 1.72);
+    g.add(pediment);
+    const medal = new THREE.Mesh(new THREE.CircleGeometry(1.35, 18), new THREE.MeshBasicMaterial({ color:0xfff8ec }));
+    medal.position.set(0, beamY + 2.6, porticoZ + 1.75);
+    const medalIn = new THREE.Mesh(new THREE.CircleGeometry(.95, 18), new THREE.MeshBasicMaterial({ color:0xc98a12 }));
+    medalIn.position.set(0, beamY + 2.6, porticoZ + 1.78);
+    g.add(medal, medalIn);
+
+    // roof slab + gold dome, because a bank without a dome is just an office
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(baseW + 1.2, 1, baseD + 1), stoneMat);
+    roof.position.y = baseH + .5;
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(3.4, 14, 10, 0, Math.PI*2, 0, Math.PI/2), goldMat);
+    dome.position.y = baseH + 1;
+    const finial = new THREE.Mesh(new THREE.CylinderGeometry(.14, .14, 1.6, 6), goldMat);
+    finial.position.y = baseH + 4.6;
+    g.add(roof, dome, finial);
+
+    // tall double doors + barred windows either side
+    const door = new THREE.Mesh(new THREE.BoxGeometry(3.6, baseH*.5, .3), navyMat);
+    door.position.set(0, stepTop + baseH*.25, baseD/2 + .18);
+    const doorTrim = new THREE.Mesh(new THREE.BoxGeometry(4.4, baseH*.54, .18), goldMat);
+    doorTrim.position.set(0, stepTop + baseH*.25, baseD/2 + .08);
+    g.add(doorTrim, door);
+    [-1, 1].forEach(s => {
+      for(let i=0;i<2;i++){
+        const wx = s * (3.9 + i*3.1);
+        const winTrim = new THREE.Mesh(new THREE.BoxGeometry(1.9, 3.4, .16), stoneMat);
+        winTrim.position.set(wx, stepTop + baseH*.36, baseD/2 + .06);
+        const win = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, .18), glassMat);
+        win.position.set(wx, stepTop + baseH*.36, baseD/2 + .1);
+        g.add(winTrim, win);
+      }
+    });
+
+    registerClickable(g, { type:'story', data:{ meta:'Financial district', title:name.label, text:`${name.sub.charAt(0) + name.sub.slice(1).toLowerCase()}. Every bank in this city is fictional, fully solvent, and suspiciously well capitalised - the perks of a hand-built economy.` } });
 
     let nearest = pathSamples[0], best = Infinity;
     for(const p of pathSamples){
@@ -1210,6 +1288,16 @@
   }
   wheelSpots.forEach(([x, z, col]) => makeFerrisWheel(x, z, col));
 
+  // reserved plots for signature landmarks (built after the grid)
+  const wsA = path.getPointAt(.10), wsB = path.getPointAt(.55), afterA = anchors[5];
+  const landmarkSpots = [
+    { x: wsA.x + 62, z: wsA.z, r: 22 },            // weather station 1 (early, on the right)
+    { x: wsB.x - 62, z: wsB.z, r: 22 },            // weather station 2 (mid-route)
+    { x: afterA.x + 122, z: afterA.z + 42, r: 50 },// cricket oval
+    { x: afterA.x - 96, z: afterA.z + 30, r: 26 }, // padel court
+    { x: afterA.x + 114, z: afterA.z - 58, r: 22 }, // GT garage
+  ];
+
   // Densified Metropolis Grid - parks fill the flight corridor and stop plazas
   for(let gz = 150; gz > -1800; gz -= 26){
     for(let gx = -460; gx < 460; gx += 26){
@@ -1217,6 +1305,7 @@
       if(vRoads.some(rx => Math.abs(x - rx) < 18)) continue;
       if(hRoads.some(rz => Math.abs(z - rz) < 18)) continue;
       if(wheelSpots.some(([wx, wz]) => { const dx = wx-x, dz = wz-z; return dx*dx + dz*dz < 24*24; })) continue;
+      if(landmarkSpots.some(s => { const dx = s.x-x, dz = s.z-z; return dx*dx + dz*dz < (s.r+8)*(s.r+8); })) continue;
 
       let metroD = 1e9;
       for(const p of metroSamples){
@@ -1236,7 +1325,7 @@
       minD = Math.sqrt(minD);
 
       if(minD < 34){
-        if(Math.random() < .8) makePark(x, z);   // everything here is low, so the corridor can be lush
+        if(Math.random() < .93) makePark(x, z);  // everything here is low, so the corridor can be lush
         continue;
       }
       let anchorD = 1e9;
@@ -1246,7 +1335,7 @@
       }
       anchorD = Math.sqrt(anchorD);
       if(anchorD < 72){
-        if(anchorD > 34 && Math.random() < .8) makePark(x, z);
+        if(anchorD > 34 && Math.random() < .92) makePark(x, z);
         continue;
       }
       if(Math.random() < .03){ makePark(x, z); continue; } // pocket parks between blocks
@@ -1468,6 +1557,342 @@
   const bobbers  = [];
   const swayers  = [];
 
+  /* ============ SIGNATURE LANDMARKS ============ */
+  // Market weather stations - big in-world displays that make the live-market sky legible
+  const weatherBoards = [];
+  function drawWeatherBoard(c){
+    let st = null, mood = 'story', mode = 'live';
+    try { st = marketState; mood = weatherMood; mode = weatherMode; } catch(e){ /* not booted yet */ }
+    const g = c.getContext('2d');
+    const W = 512, H = 320;
+    const pct = st?.market?.compositeChangePct;
+    const moodCol = { gold:'#ffd166', story:'#a8c8f5', cloudy:'#a8c8f5', rain:'#7ba7d9', storm:'#ff8a73', neon:'#a55f9c' }[mood] || '#a8c8f5';
+    g.textAlign = 'center';
+    g.fillStyle = '#0a0f1d'; g.fillRect(0,0,W,H);
+    g.strokeStyle = moodCol; g.lineWidth = 10; roundRect(g, 8, 8, W-16, H-16, 18); g.stroke();
+    g.font = '700 30px Fredoka, sans-serif'; g.fillStyle = '#fff8ec';
+    g.fillText('MARKET WEATHER · LIVE', W/2, 52);
+
+    // mood icon
+    const ix = 118, iy = 150;
+    if(mood === 'gold' || (pct != null && pct > .25)){
+      g.fillStyle = '#ffd166'; g.beginPath(); g.arc(ix, iy, 34, 0, 7); g.fill();
+      g.strokeStyle = '#ffd166'; g.lineWidth = 7;
+      for(let i=0;i<8;i++){ const a = i*Math.PI/4; g.beginPath(); g.moveTo(ix+Math.cos(a)*44, iy+Math.sin(a)*44); g.lineTo(ix+Math.cos(a)*58, iy+Math.sin(a)*58); g.stroke(); }
+    } else if(mood === 'storm'){
+      g.fillStyle = '#63586d'; g.beginPath(); g.arc(ix-18, iy-8, 24, 0, 7); g.arc(ix+14, iy-14, 28, 0, 7); g.arc(ix+30, iy-2, 20, 0, 7); g.fill();
+      g.fillStyle = '#ffd166'; g.beginPath();
+      g.moveTo(ix+4, iy+8); g.lineTo(ix-14, iy+40); g.lineTo(ix, iy+38); g.lineTo(ix-10, iy+66); g.lineTo(ix+20, iy+30); g.lineTo(ix+6, iy+32); g.closePath(); g.fill();
+    } else if(mood === 'rain'){
+      g.fillStyle = '#8ea3b3'; g.beginPath(); g.arc(ix-18, iy-8, 24, 0, 7); g.arc(ix+14, iy-14, 28, 0, 7); g.arc(ix+30, iy-2, 20, 0, 7); g.fill();
+      g.strokeStyle = '#7ba7d9'; g.lineWidth = 6;
+      for(let i=0;i<4;i++){ g.beginPath(); g.moveTo(ix-24+i*18, iy+22); g.lineTo(ix-30+i*18, iy+52); g.stroke(); }
+    } else if(mood === 'neon'){
+      g.fillStyle = '#fff6d8'; g.beginPath(); g.arc(ix, iy, 32, 0, 7); g.fill();
+      g.fillStyle = '#0a0f1d'; g.beginPath(); g.arc(ix+14, iy-8, 28, 0, 7); g.fill();
+    } else {
+      g.fillStyle = '#ffd166'; g.beginPath(); g.arc(ix-14, iy-12, 24, 0, 7); g.fill();
+      g.fillStyle = '#dfe8f2'; g.beginPath(); g.arc(ix+2, iy+4, 26, 0, 7); g.arc(ix+34, iy+2, 20, 0, 7); g.fill();
+    }
+
+    // big basket number
+    g.textAlign = 'left';
+    g.font = '700 74px Fredoka, sans-serif';
+    if(pct != null && mode === 'live'){
+      g.fillStyle = pct < 0 ? '#ff8a73' : '#7bdcb5';
+      g.fillText(`${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`, 205, 172);
+    } else {
+      g.fillStyle = '#8a93b8';
+      g.fillText(mode === 'live' ? '…' : 'MANUAL', 205, 172);
+    }
+    g.textAlign = 'center';
+    const caption = {
+      gold:'GREEN TAPE → SUNSHINE OVER THE CITY',
+      story:'FLAT TAPE → CALM SKIES',
+      cloudy:'SIDEWAYS DRIFT → OVERCAST',
+      rain:'RED TAPE → PULLBACK DRIZZLE',
+      storm:'RISK-OFF → SELL-OFF STORM',
+      neon:'AFTER HOURS → NEON NIGHT'
+    }[mood] || 'THE SKY TRADES THE US MARKET';
+    g.font = '800 24px Nunito, sans-serif'; g.fillStyle = '#fff8ec';
+    g.fillText(caption, W/2, 236);
+    g.font = '800 20px Nunito, sans-serif'; g.fillStyle = '#8a93b8';
+    g.fillText('BASKET: SPY 45 · QQQ 35 · VOO 20', W/2, 280);
+  }
+  function refreshWeatherBoards(){
+    weatherBoards.forEach(b => { drawWeatherBoard(b.canvas); b.tex.needsUpdate = true; });
+  }
+  function makeWeatherStation(x, z){
+    const g = new THREE.Group();
+    const plinth = new THREE.Mesh(new THREE.CylinderGeometry(4.4, 5, 1.2, 12), creamMat);
+    plinth.position.y = .6;
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(.7, 1, 26, 10), navyMat);
+    mast.position.y = 14;
+    g.add(plinth, mast);
+
+    const c = document.createElement('canvas'); c.width = 512; c.height = 320;
+    drawWeatherBoard(c);
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    weatherBoards.push({ canvas:c, tex });
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(24, 15), new THREE.MeshBasicMaterial({ map:tex, side:THREE.DoubleSide }));
+    board.position.y = 32;
+    g.add(board);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(25.2, 16.2, .6), navyMat);
+    frame.position.set(0, 32, -.35);
+    g.add(frame);
+
+    // spinning anemometer on top - a weather station needs its props
+    const anemo = new THREE.Group();
+    for(let i=0;i<3;i++){
+      const a = i*Math.PI*2/3;
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(2.4, .18, .18), creamMat);
+      arm.position.set(Math.cos(a)*1.2, 0, Math.sin(a)*1.2);
+      arm.rotation.y = -a;
+      const cup = new THREE.Mesh(new THREE.SphereGeometry(.55, 8, 8), new THREE.MeshLambertMaterial({ color:0xff8a73 }));
+      cup.position.set(Math.cos(a)*2.4, 0, Math.sin(a)*2.4);
+      anemo.add(arm, cup);
+    }
+    anemo.position.y = 41.4;
+    g.add(anemo);
+    spinners.push({ mesh:anemo, axis:'y', speed:2.4 });
+
+    registerClickable(g, { type:'market' });
+
+    let nearest = pathSamples[0], best = Infinity;
+    for(const p of pathSamples){
+      const dx = p.x - x, dz = p.z - z, d = dx*dx + dz*dz;
+      if(d < best){ best = d; nearest = p; }
+    }
+    g.rotation.y = Math.atan2(nearest.x - x, nearest.z - z);
+    g.position.set(x, 0, z);
+    scene.add(g);
+  }
+  makeWeatherStation(landmarkSpots[0].x, landmarkSpots[0].z);
+  makeWeatherStation(landmarkSpots[1].x, landmarkSpots[1].z);
+
+  // Stop plazas - a paved square with a fountain directly under every story stop
+  const plazaBlurbs = [
+    'Welcome plaza. Look up for the blimp, look around for the weather - the sky is trading SPY, QQQ and VOO as you read this.',
+    "Graduation plaza. Somewhere between Heriot-Watt foundation year and a Taylor's first-class degree, the markets got interesting.",
+    'The building-years plaza. Four promotions, one FIX engine, and a suspicious amount of Blazor.',
+    'Head-office plaza. ML models upstairs, Greeks priced daily, fountain running at 99.97% uptime.',
+    'Toolbox plaza. The fountain runs on C#. The pigeons are migrating to PostgreSQL.',
+    'After-hours plaza. Padel to the west, cricket to the east, one very loud garage to the south.',
+    'Landing plaza. If you made it this far, we should probably talk - LinkedIn is on the final card.'
+  ];
+  function makeStopPlaza(x, z, accent, blurb, title){
+    const g = new THREE.Group();
+    const accMat = new THREE.MeshLambertMaterial({ color:new THREE.Color(accent) });
+    const slab = new THREE.Mesh(new THREE.CylinderGeometry(15, 15.6, .5, 20), creamMat);
+    slab.position.y = .25;
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(15.1, .45, 6, 28), accMat);
+    ring.rotation.x = Math.PI/2; ring.position.y = .52;
+    g.add(slab, ring);
+
+    // central fountain
+    const basin = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 5.1, 1.1, 14), creamMat);
+    basin.position.y = 1;
+    const water = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.2, .35, 14), pondMat);
+    water.position.y = 1.55;
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(.6, .85, 2, 8), accMat);
+    pillar.position.y = 2.5;
+    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.6, .8, 12), creamMat);
+    bowl.position.y = 3.7;
+    const jet = new THREE.Mesh(new THREE.CylinderGeometry(.35, .6, 2, 8), pondMat);
+    jet.position.y = 5;
+    const splash = new THREE.Mesh(new THREE.SphereGeometry(.8, 8, 8), pondMat);
+    splash.position.y = 6.1;
+    g.add(basin, water, pillar, bowl, jet, splash);
+
+    // benches + planters around the rim
+    for(let i=0;i<6;i++){
+      const a = i*Math.PI/3;
+      const bench = new THREE.Mesh(new THREE.BoxGeometry(3.4, .5, 1.1), navyMat);
+      bench.position.set(Math.cos(a)*10.5, .9, Math.sin(a)*10.5);
+      bench.rotation.y = -a + Math.PI/2;
+      g.add(bench);
+      const bush = new THREE.Mesh(new THREE.DodecahedronGeometry(1), leafMats[i % leafMats.length]);
+      bush.position.set(Math.cos(a + Math.PI/6)*12.4, .95, Math.sin(a + Math.PI/6)*12.4);
+      g.add(bush);
+      const fl = new THREE.Mesh(new THREE.SphereGeometry(.42, 6, 6), flowerMats[i % flowerMats.length]);
+      fl.position.set(Math.cos(a + Math.PI/6)*12.4, 1.9, Math.sin(a + Math.PI/6)*12.4);
+      g.add(fl);
+    }
+    // accent flags marking the stop
+    [-1, 1].forEach(s => {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.14, .14, 7, 6), navyMat);
+      pole.position.set(s*7, 3.5, 12.5);
+      const flag = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.5), new THREE.MeshBasicMaterial({ color:new THREE.Color(accent), side:THREE.DoubleSide }));
+      flag.position.set(s*7 + 1.3, 6.2, 12.5);
+      g.add(pole, flag);
+    });
+
+    registerClickable(g, { type:'story', data:{ meta:'Stop plaza', title, text:blurb } });
+    g.position.set(x, 0, z);
+    scene.add(g);
+  }
+  chapters.forEach((ch, i) => {
+    const a = anchors[i];
+    makeStopPlaza(a.x, a.z, ch.accent, plazaBlurbs[i] || plazaBlurbs[0], ch.title);
+  });
+
+  // Cricket oval - the weekend cover-drive facility
+  function makeCricketGround(x, z){
+    const g = new THREE.Group();
+    const grass = new THREE.Mesh(new THREE.CylinderGeometry(32, 33, .4, 26), new THREE.MeshLambertMaterial({ color:0x6ca371 }));
+    grass.position.y = .2;
+    const rope = new THREE.Mesh(new THREE.TorusGeometry(29.5, .3, 6, 30), creamMat);
+    rope.rotation.x = Math.PI/2; rope.position.y = .45;
+    const pitch = new THREE.Mesh(new THREE.BoxGeometry(3.6, .45, 15), new THREE.MeshLambertMaterial({ color:0xd9c28f }));
+    pitch.position.y = .42;
+    g.add(grass, rope, pitch);
+    [-6.6, 6.6].forEach(pz => {
+      for(let i=0;i<3;i++){
+        const stump = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, 1.1, 6), creamMat);
+        stump.position.set(-.35 + i*.35, .95, pz);
+        g.add(stump);
+      }
+    });
+    // floodlights
+    for(let i=0;i<4;i++){
+      const a = i*Math.PI/2 + Math.PI/4;
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.35, .5, 18, 8), navyMat);
+      pole.position.set(Math.cos(a)*27, 9, Math.sin(a)*27);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.2, .8), new THREE.MeshLambertMaterial({ color:0xfff8ec, emissive:0xfff2c4, emissiveIntensity:.5 }));
+      head.position.set(Math.cos(a)*27, 18.6, Math.sin(a)*27);
+      head.lookAt(x, 2, z);
+      g.add(pole, head);
+    }
+    // tiny pavilion stand
+    const stand = new THREE.Group();
+    for(let r=0;r<3;r++){
+      const row = new THREE.Mesh(new THREE.BoxGeometry(14, .9, 1.6), new THREE.MeshLambertMaterial({ color:[0xff8a73, 0xffd166, 0x7bdcb5][r] }));
+      row.position.set(0, .45 + r*.9, -r*1.5);
+      stand.add(row);
+    }
+    stand.position.set(0, 0, 34);
+    g.add(stand);
+    // scoreboard
+    const sc = document.createElement('canvas'); sc.width = 512; sc.height = 192;
+    const sg = sc.getContext('2d');
+    sg.fillStyle = '#0a0f1d'; sg.fillRect(0,0,512,192);
+    sg.strokeStyle = '#7bdcb5'; sg.lineWidth = 8; roundRect(sg, 8, 8, 496, 176, 14); sg.stroke();
+    sg.textAlign = 'center'; sg.fillStyle = '#fff8ec';
+    sg.font = '700 40px Fredoka, sans-serif'; sg.fillText('HASSAN · 100* NOT OUT', 256, 78);
+    sg.font = '800 26px Nunito, sans-serif'; sg.fillStyle = '#ffd166';
+    sg.fillText('REQUIRED RUN RATE: ONE COFFEE / OVER', 256, 138);
+    const scTex = new THREE.CanvasTexture(sc);
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(13, 4.9), new THREE.MeshBasicMaterial({ map:scTex, side:THREE.DoubleSide }));
+    board.position.set(0, 7.4, 35.4);
+    board.rotation.y = Math.PI;
+    const bPole = new THREE.Mesh(new THREE.CylinderGeometry(.3, .4, 5, 8), navyMat);
+    bPole.position.set(0, 2.5, 35.4);
+    g.add(board, bPole);
+
+    registerClickable(g, { type:'story', data:{ meta:'After hours', title:'Hassan City Cricket Ground', text:'Weekend fixtures only. The cover drive is well backtested, the running between wickets remains a work-in-progress model.' } });
+    g.rotation.y = Math.random()*Math.PI*2;
+    g.position.set(x, 0, z);
+    scene.add(g);
+  }
+  makeCricketGround(landmarkSpots[2].x, landmarkSpots[2].z);
+
+  // Padel court - glass walls, high gamma
+  function makePadelCourt(x, z){
+    const g = new THREE.Group();
+    const cc = document.createElement('canvas'); cc.width = 128; cc.height = 224;
+    const cg = cc.getContext('2d');
+    cg.fillStyle = '#4a7fd4'; cg.fillRect(0,0,128,224);
+    cg.strokeStyle = '#fff8ec'; cg.lineWidth = 4;
+    cg.strokeRect(8, 8, 112, 208);
+    cg.beginPath(); cg.moveTo(8,112); cg.lineTo(120,112); cg.moveTo(64,42); cg.lineTo(64,182); cg.moveTo(8,42); cg.lineTo(120,42); cg.moveTo(8,182); cg.lineTo(120,182); cg.stroke();
+    const cTex = new THREE.CanvasTexture(cc); cTex.magFilter = THREE.NearestFilter;
+    const court = new THREE.Mesh(new THREE.BoxGeometry(11, .4, 21), new THREE.MeshLambertMaterial({ map:cTex }));
+    court.position.y = .2;
+    g.add(court);
+    // net
+    const net = new THREE.Mesh(new THREE.BoxGeometry(11, 1, .12), new THREE.MeshLambertMaterial({ color:0x23315f, transparent:true, opacity:.75 }));
+    net.position.y = .9;
+    g.add(net);
+    // glass back walls + side panels
+    const glass = new THREE.MeshLambertMaterial({ color:0xcfeaf7, transparent:true, opacity:.32, side:THREE.DoubleSide });
+    [-10.5, 10.5].forEach(gz2 => {
+      const wall = new THREE.Mesh(new THREE.PlaneGeometry(11, 4), glass);
+      wall.position.set(0, 2.4, gz2);
+      g.add(wall);
+    });
+    [-5.5, 5.5].forEach(gx2 => {
+      const wall = new THREE.Mesh(new THREE.PlaneGeometry(21, 3), glass);
+      wall.position.set(gx2, 1.9, 0);
+      wall.rotation.y = Math.PI/2;
+      g.add(wall);
+    });
+    for(const [px, pz] of [[-5.5,-10.5],[5.5,-10.5],[-5.5,10.5],[5.5,10.5],[-5.5,0],[5.5,0]]){
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,4.4,6), navyMat);
+      post.position.set(px, 2.2, pz);
+      g.add(post);
+    }
+    registerClickable(g, { type:'story', data:{ meta:'After hours', title:'Padel court', text:'High gamma off the glass, questionable hedging at the net. Weekend liquidity is excellent - bring a partner and a sense of humour.' } });
+    g.rotation.y = (Math.random()-.5)*.6;
+    g.position.set(x, 0, z);
+    scene.add(g);
+  }
+  makePadelCourt(landmarkSpots[3].x, landmarkSpots[3].z);
+
+  // GT garage - one red car, permanently long
+  function makeGtGarage(x, z){
+    const g = new THREE.Group();
+    const hall = new THREE.Mesh(new THREE.BoxGeometry(15, 6.5, 11), creamMat);
+    hall.position.y = 3.25;
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(15.8, .9, 11.8), navyMat);
+    roof.position.y = 6.95;
+    const doorGlass = new THREE.Mesh(new THREE.BoxGeometry(10, 4.4, .3), new THREE.MeshLambertMaterial({ color:0x9fd3ea, emissive:0x88c8ff, emissiveIntensity:.15 }));
+    doorGlass.position.set(0, 2.6, 5.6);
+    g.add(hall, roof, doorGlass);
+    const sc = document.createElement('canvas'); sc.width = 512; sc.height = 128;
+    const sg = sc.getContext('2d');
+    sg.fillStyle = '#0a0f1d'; sg.fillRect(0,0,512,128);
+    sg.textAlign = 'center'; sg.font = '700 62px Fredoka, sans-serif'; sg.fillStyle = '#ff5555';
+    sg.fillText('GT GARAGE', 256, 62);
+    sg.font = '800 26px Nunito, sans-serif'; sg.fillStyle = '#fff8ec';
+    sg.fillText('5.0L · NEVER FOR SALE', 256, 104);
+    const sTex = new THREE.CanvasTexture(sc);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(11, 2.75), new THREE.MeshBasicMaterial({ map:sTex }));
+    sign.position.set(0, 8.5, 5.95);
+    const signBack = new THREE.Mesh(new THREE.BoxGeometry(11.6, 3.3, .5), navyMat);
+    signBack.position.set(0, 8.5, 5.6);
+    g.add(signBack, sign);
+
+    // the car itself, parked out front
+    const car = new THREE.Group();
+    const bodyMat = new THREE.MeshLambertMaterial({ color:0xdd2b2b });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1, 6), bodyMat);
+    body.position.y = .95;
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.2, .85, 2.6), new THREE.MeshLambertMaterial({ color:0x23315f }));
+    cabin.position.set(0, 1.85, -.3);
+    car.add(body, cabin);
+    [-1, 1].forEach(s => {
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(.42, .06, 6.05), creamMat);
+      stripe.position.set(s*.45, 1.49, 0);
+      car.add(stripe);
+    });
+    for(const [wx, wz] of [[-1.3, 1.9],[1.3, 1.9],[-1.3, -1.9],[1.3, -1.9]]){
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(.55, .55, .5, 10), new THREE.MeshLambertMaterial({ color:0x1c1c1c }));
+      wheel.rotation.z = Math.PI/2;
+      wheel.position.set(wx, .55, wz);
+      car.add(wheel);
+    }
+    car.position.set(0, 0, 10.5);
+    car.rotation.y = .5;
+    g.add(car);
+
+    registerClickable(g, { type:'story', data:billboardStories.mustang });
+    g.rotation.y = Math.random()*Math.PI*2;
+    g.position.set(x, 0, z);
+    scene.add(g);
+  }
+  makeGtGarage(landmarkSpots[4].x, landmarkSpots[4].z);
+
   function makeAmbientPlane() {
     const plane = new THREE.Group();
     const fus = new THREE.Mesh(new THREE.SphereGeometry(1.6, 12, 10), new THREE.MeshLambertMaterial({ color:0xa8c8f5 }));
@@ -1688,7 +2113,7 @@
     pediment.position.set(0, baseH + 2.9, baseD/2 + 3.45);
     bank.add(pediment);
 
-    const logo = new THREE.Mesh(new THREE.PlaneGeometry(22, 7.55), new THREE.MeshBasicMaterial({ map:bankLogoTexture('BANK'), side:THREE.DoubleSide }));
+    const logo = new THREE.Mesh(new THREE.PlaneGeometry(22, 7.55), new THREE.MeshBasicMaterial({ map:bankLogoTexture('QUANT EQUITIES', '#c98a12', 'IRH · ABU DHABI'), side:THREE.DoubleSide }));
     logo.position.set(0, baseH*.83, baseD/2 + 3.65);
     bank.add(logo);
 
@@ -1771,6 +2196,7 @@
 
   function placeChapters(){
     refreshBillboards();                 // fonts are in by now - repaint the ads crisp
+    refreshWeatherBoards();
     if(chapters[0].grp) return;          // fonts promise + timeout fallback both land here
     chapters.forEach((ch, i) => {
       const anchor = anchors[i];
@@ -2082,6 +2508,49 @@
       rainMat.opacity = 0;
       rain.visible = false;
     }
+    updateSkyPill();
+    refreshWeatherBoards();
+  }
+
+  const moodIcons = { gold:'☀', story:'⛅', cloudy:'☁', rain:'🌧', storm:'⛈', neon:'🌙' };
+  function updateSkyPill(){
+    const skyValue = document.getElementById('skyValue');
+    const skyLabel = document.querySelector('#skyPill .label');
+    const pct = marketState.market?.compositeChangePct;
+    const icon = moodIcons[weatherMood] || '⛅';
+    if(weatherMode === 'live'){
+      skyLabel.textContent = 'Sky · Live';
+      if(pct != null){
+        skyValue.textContent = `${icon} ${signedPct(pct)}`;
+        skyValue.className = 'value ' + (pct < 0 ? 'dn' : 'up');
+      } else {
+        skyValue.textContent = `${icon} …`;
+        skyValue.className = 'value';
+      }
+    } else {
+      skyLabel.textContent = 'Sky · Manual';
+      skyValue.textContent = `${icon} ${moodLabels[weatherMood] || ''}`;
+      skyValue.className = 'value';
+    }
+  }
+
+  let weatherToastShown = false;
+  function showWeatherToast(){
+    if(weatherToastShown || !started || weatherMode !== 'live') return;
+    const pct = marketState.market?.compositeChangePct;
+    if(pct == null) return;
+    const line = {
+      gold:'green tape, golden skies over the city',
+      story:'flat tape, calm skies',
+      cloudy:'sideways drift, overcast',
+      rain:'red tape, drizzle over the skyline',
+      storm:'risk-off, storm clouds rolling in'
+    }[marketState.visualMood] || 'live market weather is on';
+    const el = document.getElementById('weatherToast');
+    el.textContent = `🛰 Live market weather · SPY/QQQ/VOO ${signedPct(pct)} — ${line}. Tap the Sky pill for details.`;
+    el.classList.add('on');
+    weatherToastShown = true;
+    setTimeout(() => el.classList.remove('on'), 9000);
   }
 
   function updateLivePanel(){
@@ -2108,6 +2577,7 @@
     }
     updateLivePanel();
     applyWeatherMode();
+    showWeatherToast();
   }
 
   function beginExperience(){
@@ -2119,6 +2589,7 @@
       document.getElementById('ticker').classList.add('on');
       configToggle.classList.add('on');
       scrollTo({ top:0 });
+      setTimeout(showWeatherToast, 900);
   }
 
   function setHudForStory(){
@@ -2303,6 +2774,8 @@
     if(!interaction) return;
     if(interaction.type === 'ferris') {
       startFerrisRide(interaction.wheel);
+    } else if(interaction.type === 'market') {
+      openMarketPop();
     } else if(interaction.type === 'story' || interaction.type === 'billboard') {
       openStoryPop(interaction.data);
     }
@@ -2372,10 +2845,14 @@
   hssnPill.style.cursor = 'pointer';
   hssnPill.style.pointerEvents = 'auto';
   hssnPill.addEventListener('click', openMarketPop);
+  const skyPillEl = document.getElementById('skyPill');
+  skyPillEl.addEventListener('click', openMarketPop);
+  skyPillEl.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openMarketPop(); } });
   updateLivePanel();
+  updateSkyPill();
   loadMarketWeather();
 
-  const tickerItems = ['HSSN ▲ +7.31','C#/.NET ▲ +99.9','ML.NET ▲ +2.10','FIX ENGINE ▲ FILLED','SHARPE ▲ 7.0','FR-POWER ▲ +1.8','GREEKS Δ Γ Θ ν · LIVE','OTC OPTIONS ▲ PRICED','PADEL ▲ +1.2','CRICKET ▲ +0.4','MUSTANG GT ▲ 5.0L','SIDE PROJECTS ▲ SHIPPING','COFFEE ▲ +9.99','SLEEP ▼ −4.20','EM WATCHLIST ▲ OPEN'];
+  const tickerItems = ['HSSN ▲ +7.31','C#/.NET ▲ HELD LONG','ML.NET ▲ +2.10','FIX ENGINE ▲ FILLED','BLAZOR ▲ RENDERED','GREEKS Δ Γ Θ ν · LIVE','OTC OPTIONS ▲ PRICED','SPY·QQQ·VOO → CITY WEATHER','PADEL ▲ HIGH GAMMA','CRICKET ▲ COVER DRIVE','MUSTANG GT ▲ 5.0L','SIDE PROJECTS ▲ SHIPPING','COFFEE ▲ +9.99','SLEEP ▼ −4.20','EM WATCHLIST ▲ OPEN'];
   document.getElementById('tape').innerHTML =
     tickerItems.concat(tickerItems).map(s => `<span class="tk ${s.includes('▼') ? 'dn' : 'up'}">${s}</span>`).join('');
   const camPos = new THREE.Vector3(), lookPos = new THREE.Vector3(), tanA = new THREE.Vector3(), tanB = new THREE.Vector3(), lookTarget = new THREE.Vector3();
@@ -2747,8 +3224,6 @@ animate();
   });
 })();
 </script>
-
-
 
 </body>
 </html>
