@@ -241,7 +241,7 @@
     background:#fff;color:var(--navy);font-family:'Fredoka',sans-serif;font-size:1.15rem;font-weight:700;cursor:pointer;
     box-shadow:0 3px 0 rgba(35,49,95,.2);
   }
-  #marketSpark{width:100%;height:138px;margin-top:.85rem;border:3px solid var(--navy);border-radius:16px;background:#10182f}
+  #marketSpark{width:100%;height:170px;margin-top:.85rem;border:3px solid var(--navy);border-radius:16px;background:#10182f}
 
   #finale{
     position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -419,7 +419,7 @@
     <span class="meta" id="marketPopMeta">ETF market mood</span>
     <h3 id="marketPopTitle">Loading market mood</h3>
     <p id="marketPopText">SPY, QQQ and VOO drive the city weather. Green tape warms it up; red tape brings the rain.</p>
-    <canvas id="marketSpark" width="720" height="190"></canvas>
+    <canvas id="marketSpark" width="720" height="236"></canvas>
   </div>
 </div>
 
@@ -470,9 +470,9 @@
   }
 
   /* ============ LIGHTING ============ */
-  const sun = new THREE.DirectionalLight(0xfff4d6, 1.1);
+  const sun = new THREE.DirectionalLight(0xfff4d6, .9);
   sun.position.set(150, 220, 80);
-  const ambient = new THREE.AmbientLight(0xdcebff, .85);
+  const ambient = new THREE.AmbientLight(0xdcebff, .6);
   scene.add(sun, ambient);
 
   // sun & moon ride along with the camera (repositioned every frame in animate)
@@ -745,7 +745,7 @@
   function groundTexture(){
     const c = document.createElement('canvas'); c.width = 1024; c.height = 2048;
     const g = c.getContext('2d');
-    g.fillStyle = '#a3d9a5'; g.fillRect(0,0,1024,2048);
+    g.fillStyle = '#8fc793'; g.fillRect(0,0,1024,2048);
     for(let i=0;i<60;i++){
       g.fillStyle = i%2 ? '#b7e4b0' : '#92cf94';
       g.beginPath();
@@ -758,8 +758,8 @@
 
     vRoads.forEach(x => {
       const cx = u(x);
-      g.fillStyle = '#cfd4e8'; g.fillRect(cx-roadW/2-sideW, 0, roadW+sideW*2, 2048);
-      g.fillStyle = '#6f7a99'; g.fillRect(cx-roadW/2, 0, roadW, 2048);
+      g.fillStyle = '#bcc3dc'; g.fillRect(cx-roadW/2-sideW, 0, roadW+sideW*2, 2048);
+      g.fillStyle = '#65708e'; g.fillRect(cx-roadW/2, 0, roadW, 2048);
       g.fillStyle = '#fff8ec';
       for(let y=0; y<2048; y+=44) g.fillRect(cx-1.5, y, 3, 18);
     });
@@ -767,8 +767,8 @@
     hRoads.forEach(z => {
       const cy = v(z);
       const rh = 16/GROUND_L*2048;
-      g.fillStyle = '#cfd4e8'; g.fillRect(0, cy-rh/2-sideW, 1024, rh+sideW*2);
-      g.fillStyle = '#6f7a99'; g.fillRect(0, cy-rh/2, 1024, rh);
+      g.fillStyle = '#bcc3dc'; g.fillRect(0, cy-rh/2-sideW, 1024, rh+sideW*2);
+      g.fillStyle = '#65708e'; g.fillRect(0, cy-rh/2, 1024, rh);
       g.fillStyle = '#fff8ec';
       for(let x=0; x<1024; x+=44) g.fillRect(x, cy-1.5, 18, 3);
     });
@@ -855,6 +855,15 @@
     attachBillboard(g, x, z, w, h, d, top);
     g.position.set(x, 0, z);
     scene.add(g);
+  }
+
+  function yawToPath(x, z){
+    let nearest = pathSamples[0], best = Infinity;
+    for(const p of pathSamples){
+      const dx = p.x - x, dz = p.z - z, d = dx*dx + dz*dz;
+      if(d < best){ best = d; nearest = p; }
+    }
+    return Math.atan2(nearest.x - x, nearest.z - z);
   }
 
   const bankNames = [
@@ -983,12 +992,7 @@
 
     registerClickable(g, { type:'story', data:{ meta:'Financial district', title:name.label, text:`${name.sub.charAt(0) + name.sub.slice(1).toLowerCase()}. Every bank in this city is fictional, fully solvent, and suspiciously well capitalised - the perks of a hand-built economy.` } });
 
-    let nearest = pathSamples[0], best = Infinity;
-    for(const p of pathSamples){
-      const dx = p.x - x, dz = p.z - z, d = dx*dx + dz*dz;
-      if(d < best){ best = d; nearest = p; }
-    }
-    g.rotation.y = Math.atan2(nearest.x - x, nearest.z - z);
+    g.rotation.y = yawToPath(x, z);
     g.position.set(x, 0, z);
     scene.add(g);
   }
@@ -1126,6 +1130,63 @@
   }
   const courtMat = new THREE.MeshLambertMaterial({ map: courtTexture() });
 
+  /* Padel cage - the glass walls are the whole point */
+  function padelFloorTexture(){
+    const c = document.createElement('canvas'); c.width = 128; c.height = 256;
+    const g = c.getContext('2d');
+    g.fillStyle = '#3f6fc4'; g.fillRect(0, 0, 128, 256);          // blue court
+    g.strokeStyle = '#fff8ec'; g.lineWidth = 5;
+    g.strokeRect(8, 8, 112, 240);                                  // perimeter
+    g.beginPath();
+    g.moveTo(8, 128); g.lineTo(120, 128);                          // net line
+    g.moveTo(8, 58); g.lineTo(120, 58);                            // service lines
+    g.moveTo(8, 198); g.lineTo(120, 198);
+    g.moveTo(64, 58); g.lineTo(64, 8);                             // centre service marks
+    g.moveTo(64, 198); g.lineTo(64, 248);
+    g.stroke();
+    const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter;
+    return t;
+  }
+  const padelFloorMat = new THREE.MeshLambertMaterial({ map: padelFloorTexture() });
+  const padelGlassMat = new THREE.MeshLambertMaterial({ color:0xd8f0fb, transparent:true, opacity:.45, side:THREE.DoubleSide, depthWrite:false });
+  const padelMeshMat  = new THREE.MeshLambertMaterial({ color:0x23315f, transparent:true, opacity:.4, side:THREE.DoubleSide, depthWrite:false });
+  function makePadelCage(W = 7, L = 14, wallH = 2.4){
+    const g = new THREE.Group();
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(W, .35, L), padelFloorMat);
+    floor.position.y = .17;
+    g.add(floor);
+    const net = new THREE.Mesh(new THREE.BoxGeometry(W - .3, .8, .1), new THREE.MeshLambertMaterial({ color:0x23315f, transparent:true, opacity:.8 }));
+    net.position.y = .75;
+    g.add(net);
+    const meshH = wallH * .8;
+    const addWall = (w2, px, pz, rotY) => {
+      const glass = new THREE.Mesh(new THREE.PlaneGeometry(w2, wallH), padelGlassMat);
+      glass.position.set(px, .35 + wallH/2, pz);
+      glass.rotation.y = rotY;
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(w2 + .2, .22, .22), creamMat);
+      rail.position.set(px, .35 + wallH + .11, pz);
+      rail.rotation.y = rotY;
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w2, meshH), padelMeshMat);
+      mesh.position.set(px, .35 + wallH + .22 + meshH/2, pz);
+      mesh.rotation.y = rotY;
+      const topRail = new THREE.Mesh(new THREE.BoxGeometry(w2 + .2, .2, .2), creamMat);
+      topRail.position.set(px, .35 + wallH + .22 + meshH + .1, pz);
+      topRail.rotation.y = rotY;
+      g.add(glass, rail, mesh, topRail);
+    };
+    addWall(W, 0, -L/2, 0);            // back glass walls
+    addWall(W, 0,  L/2, 0);
+    addWall(L, -W/2, 0, Math.PI/2);    // side glass walls
+    addWall(L,  W/2, 0, Math.PI/2);
+    const postH = .35 + wallH + .22 + meshH + .2;
+    for(const [px, pz] of [[-W/2,-L/2],[W/2,-L/2],[-W/2,L/2],[W/2,L/2],[-W/2,0],[W/2,0]]){
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(.14, .14, postH, 6), navyMat);
+      post.position.set(px, postH/2, pz);
+      g.add(post);
+    }
+    return g;
+  }
+
   function makePark(x, z){
     const g = new THREE.Group();
     const r = Math.random();
@@ -1192,12 +1253,8 @@
       const tip = new THREE.Mesh(new THREE.SphereGeometry(.3, 8, 8), goldTrim);
       tip.position.y = 5.4;
       g.add(roof, tip);
-    } else if(r < .64){                          // padel court - weekends are for racquets
-      const court = new THREE.Mesh(new THREE.BoxGeometry(13, .4, 7), courtMat);
-      court.position.y = .2;
-      const net = new THREE.Mesh(new THREE.BoxGeometry(.2, 1.1, 6.8), navyMat);
-      net.position.y = 1;
-      g.add(court, net);
+    } else if(r < .64){                          // padel cage - weekends are for racquets
+      g.add(makePadelCage(7, 14, 2.4));
     } else if(r < .74){                          // candlestick hedge garden
       const strip = new THREE.Mesh(new THREE.BoxGeometry(14.5, .3, 4), soilMat);
       strip.position.y = .15;
@@ -1289,14 +1346,31 @@
   wheelSpots.forEach(([x, z, col]) => makeFerrisWheel(x, z, col));
 
   // reserved plots for signature landmarks (built after the grid)
+  // roads are 16 world-units wide + sidewalks, so keep footprints clear of centerlines
+  function dodgeRoads(x, z, clear){
+    for(const rx of vRoads){ const d = x - rx; if(Math.abs(d) < clear) x = rx + (d >= 0 ? clear : -clear); }
+    for(const rz of hRoads){ const d = z - rz; if(Math.abs(d) < clear) z = rz + (d >= 0 ? clear : -clear); }
+    return { x, z };
+  }
   const wsA = path.getPointAt(.10), wsB = path.getPointAt(.55), afterA = anchors[5];
+  const wsSpot1 = dodgeRoads(wsA.x + 62, wsA.z, 22);
+  const wsSpot2 = dodgeRoads(wsB.x - 62, wsB.z, 22);
+  const ovalSpot = { x: 70, z: dodgeRoads(70, afterA.z + 42, 42).z }; // x=70 sits centered in the block between the x=34 and x=106 roads
+  const padelSpot = dodgeRoads(-74, afterA.z + 30, 24);
+  const garageSpot = dodgeRoads(70, afterA.z - 84, 20);
+  const plazaSpots = anchors.map(a => dodgeRoads(a.x, a.z, 27));
   const landmarkSpots = [
-    { x: wsA.x + 62, z: wsA.z, r: 22 },            // weather station 1 (early, on the right)
-    { x: wsB.x - 62, z: wsB.z, r: 22 },            // weather station 2 (mid-route)
-    { x: afterA.x + 122, z: afterA.z + 42, r: 50 },// cricket oval
-    { x: afterA.x - 96, z: afterA.z + 30, r: 26 }, // padel court
-    { x: afterA.x + 114, z: afterA.z - 58, r: 22 }, // GT garage
+    { ...wsSpot1, r: 20 },            // weather station 1 (early, on the right)
+    { ...wsSpot2, r: 20 },            // weather station 2 (mid-route)
+    { ...ovalSpot, r: 38 },           // cricket oval
+    { ...padelSpot, r: 24 },          // padel court
+    { ...garageSpot, r: 20 },         // GT garage
+    ...plazaSpots.map(p => ({ ...p, r: 19 })), // stop plazas
   ];
+
+  // civic buildings get breathing room - one bank per block, one mosque per district
+  const civicSpots = { bank: [], mosque: [] };
+  const farFrom = (list, x, z, min) => list.every(p => { const dx = p.x - x, dz = p.z - z; return dx*dx + dz*dz > min*min; });
 
   // Densified Metropolis Grid - parks fill the flight corridor and stop plazas
   for(let gz = 150; gz > -1800; gz -= 26){
@@ -1313,7 +1387,13 @@
         if(dd < metroD) metroD = dd;
       }
       metroD = Math.sqrt(metroD);
+      if(metroD < 14) continue;                  // keep the pylons themselves clear
       if(metroD < METRO_CLEARANCE){
+        // low-rise under the elevated rail (deck sits at ~58) so the corridor isn't a dead zone
+        const rr = Math.random();
+        if(rr < .28) makePark(x, z);
+        else if(rr < .52) makeHouse(x, z);
+        else if(rr < .92) makeTower(x, z, 10 + Math.random()*8, 11 + Math.random()*13, 10 + Math.random()*8);
         continue;
       }
 
@@ -1341,9 +1421,11 @@
       if(Math.random() < .03){ makePark(x, z); continue; } // pocket parks between blocks
 
       const r = Math.random();
-      if(r < 0.018) {
+      if(r < 0.018 && farFrom(civicSpots.mosque, x, z, 180)) {
+          civicSpots.mosque.push({ x, z });
           makeMosque(x, z);
-      } else if (r < 0.06) {
+      } else if (r >= 0.018 && r < 0.06 && farFrom(civicSpots.bank, x, z, 150)) {
+          civicSpots.bank.push({ x, z });
           makeGroundBank(x, z);
       } else if (Math.abs(gx) > 320) {
           makeHouse(x, z); // outer ring stays suburban
@@ -1659,17 +1741,12 @@
 
     registerClickable(g, { type:'market' });
 
-    let nearest = pathSamples[0], best = Infinity;
-    for(const p of pathSamples){
-      const dx = p.x - x, dz = p.z - z, d = dx*dx + dz*dz;
-      if(d < best){ best = d; nearest = p; }
-    }
-    g.rotation.y = Math.atan2(nearest.x - x, nearest.z - z);
+    g.rotation.y = yawToPath(x, z);
     g.position.set(x, 0, z);
     scene.add(g);
   }
-  makeWeatherStation(landmarkSpots[0].x, landmarkSpots[0].z);
-  makeWeatherStation(landmarkSpots[1].x, landmarkSpots[1].z);
+  makeWeatherStation(wsSpot1.x, wsSpot1.z);
+  makeWeatherStation(wsSpot2.x, wsSpot2.z);
 
   // Stop plazas - a paved square with a fountain directly under every story stop
   const plazaBlurbs = [
@@ -1733,21 +1810,21 @@
     scene.add(g);
   }
   chapters.forEach((ch, i) => {
-    const a = anchors[i];
-    makeStopPlaza(a.x, a.z, ch.accent, plazaBlurbs[i] || plazaBlurbs[0], ch.title);
+    const p = plazaSpots[i];
+    makeStopPlaza(p.x, p.z, ch.accent, plazaBlurbs[i] || plazaBlurbs[0], ch.title);
   });
 
   // Cricket oval - the weekend cover-drive facility
   function makeCricketGround(x, z){
     const g = new THREE.Group();
-    const grass = new THREE.Mesh(new THREE.CylinderGeometry(32, 33, .4, 26), new THREE.MeshLambertMaterial({ color:0x6ca371 }));
+    const grass = new THREE.Mesh(new THREE.CylinderGeometry(28, 29, .4, 26), new THREE.MeshLambertMaterial({ color:0x6ca371 }));
     grass.position.y = .2;
-    const rope = new THREE.Mesh(new THREE.TorusGeometry(29.5, .3, 6, 30), creamMat);
+    const rope = new THREE.Mesh(new THREE.TorusGeometry(25.5, .3, 6, 30), creamMat);
     rope.rotation.x = Math.PI/2; rope.position.y = .45;
-    const pitch = new THREE.Mesh(new THREE.BoxGeometry(3.6, .45, 15), new THREE.MeshLambertMaterial({ color:0xd9c28f }));
+    const pitch = new THREE.Mesh(new THREE.BoxGeometry(3.6, .45, 13), new THREE.MeshLambertMaterial({ color:0xd9c28f }));
     pitch.position.y = .42;
     g.add(grass, rope, pitch);
-    [-6.6, 6.6].forEach(pz => {
+    [-5.6, 5.6].forEach(pz => {
       for(let i=0;i<3;i++){
         const stump = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, 1.1, 6), creamMat);
         stump.position.set(-.35 + i*.35, .95, pz);
@@ -1758,9 +1835,9 @@
     for(let i=0;i<4;i++){
       const a = i*Math.PI/2 + Math.PI/4;
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(.35, .5, 18, 8), navyMat);
-      pole.position.set(Math.cos(a)*27, 9, Math.sin(a)*27);
+      pole.position.set(Math.cos(a)*23.5, 9, Math.sin(a)*23.5);
       const head = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.2, .8), new THREE.MeshLambertMaterial({ color:0xfff8ec, emissive:0xfff2c4, emissiveIntensity:.5 }));
-      head.position.set(Math.cos(a)*27, 18.6, Math.sin(a)*27);
+      head.position.set(Math.cos(a)*23.5, 18.6, Math.sin(a)*23.5);
       head.lookAt(x, 2, z);
       g.add(pole, head);
     }
@@ -1771,7 +1848,7 @@
       row.position.set(0, .45 + r*.9, -r*1.5);
       stand.add(row);
     }
-    stand.position.set(0, 0, 34);
+    stand.position.set(0, 0, 30);
     g.add(stand);
     // scoreboard
     const sc = document.createElement('canvas'); sc.width = 512; sc.height = 192;
@@ -1784,60 +1861,45 @@
     sg.fillText('REQUIRED RUN RATE: ONE COFFEE / OVER', 256, 138);
     const scTex = new THREE.CanvasTexture(sc);
     const board = new THREE.Mesh(new THREE.PlaneGeometry(13, 4.9), new THREE.MeshBasicMaterial({ map:scTex, side:THREE.DoubleSide }));
-    board.position.set(0, 7.4, 35.4);
+    board.position.set(0, 7.4, 31.4);
     board.rotation.y = Math.PI;
     const bPole = new THREE.Mesh(new THREE.CylinderGeometry(.3, .4, 5, 8), navyMat);
-    bPole.position.set(0, 2.5, 35.4);
+    bPole.position.set(0, 2.5, 31.4);
     g.add(board, bPole);
 
     registerClickable(g, { type:'story', data:{ meta:'After hours', title:'Hassan City Cricket Ground', text:'Weekend fixtures only. The cover drive is well backtested, the running between wickets remains a work-in-progress model.' } });
-    g.rotation.y = Math.random()*Math.PI*2;
+    g.rotation.y = yawToPath(x, z);   // scoreboard + stand read from the flight path
     g.position.set(x, 0, z);
     scene.add(g);
   }
-  makeCricketGround(landmarkSpots[2].x, landmarkSpots[2].z);
+  makeCricketGround(ovalSpot.x, ovalSpot.z);
 
   // Padel court - glass walls, high gamma
   function makePadelCourt(x, z){
     const g = new THREE.Group();
-    const cc = document.createElement('canvas'); cc.width = 128; cc.height = 224;
-    const cg = cc.getContext('2d');
-    cg.fillStyle = '#4a7fd4'; cg.fillRect(0,0,128,224);
-    cg.strokeStyle = '#fff8ec'; cg.lineWidth = 4;
-    cg.strokeRect(8, 8, 112, 208);
-    cg.beginPath(); cg.moveTo(8,112); cg.lineTo(120,112); cg.moveTo(64,42); cg.lineTo(64,182); cg.moveTo(8,42); cg.lineTo(120,42); cg.moveTo(8,182); cg.lineTo(120,182); cg.stroke();
-    const cTex = new THREE.CanvasTexture(cc); cTex.magFilter = THREE.NearestFilter;
-    const court = new THREE.Mesh(new THREE.BoxGeometry(11, .4, 21), new THREE.MeshLambertMaterial({ map:cTex }));
-    court.position.y = .2;
-    g.add(court);
-    // net
-    const net = new THREE.Mesh(new THREE.BoxGeometry(11, 1, .12), new THREE.MeshLambertMaterial({ color:0x23315f, transparent:true, opacity:.75 }));
-    net.position.y = .9;
-    g.add(net);
-    // glass back walls + side panels
-    const glass = new THREE.MeshLambertMaterial({ color:0xcfeaf7, transparent:true, opacity:.32, side:THREE.DoubleSide });
-    [-10.5, 10.5].forEach(gz2 => {
-      const wall = new THREE.Mesh(new THREE.PlaneGeometry(11, 4), glass);
-      wall.position.set(0, 2.4, gz2);
-      g.add(wall);
-    });
-    [-5.5, 5.5].forEach(gx2 => {
-      const wall = new THREE.Mesh(new THREE.PlaneGeometry(21, 3), glass);
-      wall.position.set(gx2, 1.9, 0);
-      wall.rotation.y = Math.PI/2;
-      g.add(wall);
-    });
-    for(const [px, pz] of [[-5.5,-10.5],[5.5,-10.5],[-5.5,10.5],[5.5,10.5],[-5.5,0],[5.5,0]]){
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,4.4,6), navyMat);
-      post.position.set(px, 2.2, pz);
-      g.add(post);
+    const apron = new THREE.Mesh(new THREE.BoxGeometry(16, .25, 26), creamMat);
+    apron.position.y = .12;
+    g.add(apron);
+    g.add(makePadelCage(10, 20, 3.2));
+    // floodlights at the four corners
+    for(const [px, pz] of [[-7, -11.5],[7, -11.5],[-7, 11.5],[7, 11.5]]){
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.22, .3, 9, 8), navyMat);
+      pole.position.set(px, 4.5, pz);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(2, 1.3, .6), new THREE.MeshLambertMaterial({ color:0xfff8ec, emissive:0xfff2c4, emissiveIntensity:.5 }));
+      head.position.set(px, 9.2, pz);
+      head.lookAt(x, 1, z);
+      g.add(pole, head);
     }
+    // spectator bench + a couple of spare rackets against the glass
+    const bench = new THREE.Mesh(new THREE.BoxGeometry(4.2, .5, 1.1), navyMat);
+    bench.position.set(-7.4, .8, 0);
+    g.add(bench);
     registerClickable(g, { type:'story', data:{ meta:'After hours', title:'Padel court', text:'High gamma off the glass, questionable hedging at the net. Weekend liquidity is excellent - bring a partner and a sense of humour.' } });
-    g.rotation.y = (Math.random()-.5)*.6;
+    g.rotation.y = yawToPath(x, z);   // long glass side reads from the flight path
     g.position.set(x, 0, z);
     scene.add(g);
   }
-  makePadelCourt(landmarkSpots[3].x, landmarkSpots[3].z);
+  makePadelCourt(padelSpot.x, padelSpot.z);
 
   // GT garage - one red car, permanently long
   function makeGtGarage(x, z){
@@ -1887,11 +1949,11 @@
     g.add(car);
 
     registerClickable(g, { type:'story', data:billboardStories.mustang });
-    g.rotation.y = Math.random()*Math.PI*2;
+    g.rotation.y = yawToPath(x, z);   // showroom glass + sign face the flight path
     g.position.set(x, 0, z);
     scene.add(g);
   }
-  makeGtGarage(landmarkSpots[4].x, landmarkSpots[4].z);
+  makeGtGarage(garageSpot.x, garageSpot.z);
 
   function makeAmbientPlane() {
     const plane = new THREE.Group();
@@ -2357,9 +2419,9 @@
   const skyDay = new THREE.Color(0x87ceeb), skyDusk = new THREE.Color(0xffb27d), skyNight = new THREE.Color(0x1b2a5e);
   const fogDay = new THREE.Color(0xcfeaf7), fogDusk = new THREE.Color(0xf5c39a), fogNight = new THREE.Color(0x27345f);
   const weatherLooks = {
-    cloudy:{ sky:0x9ab2c6, fog:0xb9c9d2, sun:.52, ambient:.66, lights:.28, stars:0, birds:.55, cloud:0xc9d3da, sunFade:.36, moon:.02 },
-    gold:{ sky:0xffc17a, fog:0xffddb2, sun:1.25, ambient:.78, lights:.18, stars:0, birds:.9, cloud:0xfff1d6, sunFade:1, moon:.02 },
-    rain:{ sky:0x6f879d, fog:0x8ea3b3, sun:.18, ambient:.56, lights:.62, stars:0, birds:.16, cloud:0x718196, sunFade:.08, moon:0 },
+    cloudy:{ sky:0x9ab2c6, fog:0xb9c9d2, sun:.44, ambient:.54, lights:.28, stars:0, birds:.55, cloud:0xc9d3da, sunFade:.36, moon:.02 },
+    gold:{ sky:0xffc17a, fog:0xffddb2, sun:.85, ambient:.56, lights:.18, stars:0, birds:.9, cloud:0xfff1d6, sunFade:1, moon:.02 },
+    rain:{ sky:0x6f879d, fog:0x8ea3b3, sun:.18, ambient:.5, lights:.62, stars:0, birds:.16, cloud:0x718196, sunFade:.08, moon:0 },
     neon:{ sky:0x10152f, fog:0x1d254d, sun:.08, ambient:.5, lights:1.18, stars:1, birds:0, cloud:0x24305f, sunFade:0, moon:.65 },
     storm:{ sky:0x463f57, fog:0x63586d, sun:.08, ambient:.46, lights:1.25, stars:.15, birds:0, cloud:0x534a5f, sunFade:0, moon:.16 }
   };
@@ -2374,9 +2436,9 @@
     if(look){
       scene.background = new THREE.Color(look.sky);
       scene.fog.color.setHex(look.fog);
-      sun.intensity = Math.min(1.35, look.sun + liveGlow * .22);
+      sun.intensity = Math.min(1.05, look.sun + liveGlow * .14);
       sun.color.setHex(weatherMood === 'neon' ? 0xaec4ff : 0xffe1a8);
-      ambient.intensity = Math.min(.86, look.ambient + liveGlow * .12);
+      ambient.intensity = Math.min(.68, look.ambient + liveGlow * .07);
       cloudMat.color.setHex(look.cloud);
       sunCore.material.opacity = look.sunFade;
       sunGlow1.material.opacity = .35 * look.sunFade;
@@ -2396,9 +2458,9 @@
     scene.fog.color.copy(triLerp(fogDay, fogDusk, fogNight, k));
     cloudMat.color.setHex(0xffffff);
 
-    sun.intensity = Math.max(.25, 1.1 - k*.95);
+    sun.intensity = Math.max(.22, .82 - k*.64);
     sun.color.setHSL(.11 - k*.04, .9, .8);
-    ambient.intensity = Math.max(.45, .85 - k*.45);
+    ambient.intensity = Math.max(.36, .58 - k*.24);
 
     sunCore.material.color.setHSL(.12 - k*.06, 1, .62);
     const sunFade = 1 - THREE.MathUtils.smoothstep(k, .72, .9);
@@ -2702,46 +2764,73 @@
     const W = canvas.width, H = canvas.height;
     g.clearRect(0,0,W,H);
     g.fillStyle = '#10182f'; g.fillRect(0,0,W,H);
-    g.strokeStyle = 'rgba(255,248,236,.14)'; g.lineWidth = 2;
-    for(let x=40;x<W;x+=72){ g.beginPath(); g.moveTo(x,18); g.lineTo(x,H-22); g.stroke(); }
-    for(let y=34;y<H;y+=40){ g.beginPath(); g.moveTo(24,y); g.lineTo(W-24,y); g.stroke(); }
+
+    // header row (chart is drawn strictly below it)
+    const pct = marketState.market?.compositeChangePct;
+    g.textAlign = 'left';
+    g.fillStyle = '#fff8ec'; g.font = '700 28px Fredoka, sans-serif'; g.fillText('ETF', 34, 40);
+    if(pct != null){
+      g.fillStyle = pct < 0 ? '#ff8a73' : '#7bdcb5';
+      g.fillText(signedPct(pct) + ' today', 104, 40);
+    }
+    g.textAlign = 'right';
+    g.fillStyle = '#8a93b8'; g.font = '800 17px Nunito, sans-serif';
+    g.fillText('LAST 5 SESSIONS · INDEXED TO 100', W - 30, 38);
+
+    const top = 62, bottom = H - 40, left = 88, right = W - 44;
+    g.strokeStyle = 'rgba(255,248,236,.12)'; g.lineWidth = 2;
+    for(let i=0;i<5;i++){ const gy = top + i*(bottom-top)/4; g.beginPath(); g.moveTo(left, gy); g.lineTo(right, gy); g.stroke(); }
+
     const spark = marketState.market?.spark || [];
     if(spark.length > 1){
-      const min = Math.min(...spark), max = Math.max(...spark), span = Math.max(.2, max - min);
-      const y = v => H - 30 - ((v - min) / span) * (H - 64);
-      g.strokeStyle = marketRiskK > .45 ? '#ff8a73' : '#7bdcb5';
+      const min = Math.min(...spark, 100), max = Math.max(...spark, 100);
+      const pad = Math.max(.25, (max - min) * .18);
+      const lo = min - pad, hi = max + pad;
+      const y = v => bottom - ((v - lo) / (hi - lo)) * (bottom - top);
+      const px = i => left + i * ((right - left) / (spark.length - 1));
+
+      // axis labels + the 100 baseline everything is indexed against
+      g.textAlign = 'right'; g.font = '800 17px Nunito, sans-serif'; g.fillStyle = '#8a93b8';
+      g.fillText(hi.toFixed(1), left - 12, top + 6);
+      g.fillText(lo.toFixed(1), left - 12, bottom + 6);
+      g.fillText('100', left - 12, y(100) + 6);
+      g.strokeStyle = 'rgba(255,209,102,.5)'; g.lineWidth = 2; g.setLineDash([8, 8]);
+      g.beginPath(); g.moveTo(left, y(100)); g.lineTo(right, y(100)); g.stroke();
+      g.setLineDash([]);
+
+      g.strokeStyle = spark[spark.length-1] >= spark[0] ? '#7bdcb5' : '#ff8a73';
       g.lineWidth = 6;
       g.beginPath();
-      spark.forEach((v, i) => {
-        const x = 50 + i * ((W - 100) / (spark.length - 1));
-        if(i) g.lineTo(x, y(v)); else g.moveTo(x, y(v));
-      });
+      spark.forEach((v, i) => { if(i) g.lineTo(px(i), y(v)); else g.moveTo(px(i), y(v)); });
       g.stroke();
       spark.forEach((v, i) => {
-        const x = 50 + i * ((W - 100) / (spark.length - 1));
         g.fillStyle = i && v < spark[i - 1] ? '#ff8a73' : '#7bdcb5';
-        g.beginPath(); g.arc(x, y(v), 7, 0, Math.PI*2); g.fill();
+        g.beginPath(); g.arc(px(i), y(v), 7, 0, Math.PI*2); g.fill();
+      });
+      // value tags on first and last points so the numbers are readable
+      g.font = '800 18px Nunito, sans-serif'; g.textAlign = 'center';
+      const tag = (i, v) => {
+        const ty = y(v) < top + 26 ? y(v) + 26 : y(v) - 16;
+        g.fillStyle = '#fff8ec';
+        g.fillText(v.toFixed(1), px(i), ty);
+      };
+      tag(0, spark[0]);
+      tag(spark.length - 1, spark[spark.length - 1]);
+      // session labels along the bottom
+      g.fillStyle = '#8a93b8'; g.font = '800 16px Nunito, sans-serif';
+      spark.forEach((v, i) => {
+        const label = i === spark.length - 1 ? 'TODAY' : `D-${spark.length - 1 - i}`;
+        g.fillText(label, px(i), H - 14);
       });
     } else {
-      let price = 110;
-      for(let i=0;i<14;i++){
-        const x = 54 + i*46;
-        const open = price + (Math.random()-.45)*18;
-        const close = open + 4 + Math.random()*22;
-        const high = Math.max(open, close) + 8 + Math.random()*14;
-        const low = Math.min(open, close) - 8 - Math.random()*12;
-        price = close;
-        const y = v => H - 28 - (v - 70) / 95 * (H - 48);
-        const up = close >= open;
-        g.strokeStyle = g.fillStyle = up ? '#7bdcb5' : '#ff8a73';
-        g.lineWidth = 5;
-        g.beginPath(); g.moveTo(x, y(high)); g.lineTo(x, y(low)); g.stroke();
-        g.fillRect(x-13, y(Math.max(open, close)), 26, Math.max(8, Math.abs(y(open)-y(close))));
-      }
+      g.strokeStyle = 'rgba(255,248,236,.3)'; g.lineWidth = 4; g.setLineDash([10, 12]);
+      g.beginPath(); g.moveTo(left, (top+bottom)/2); g.lineTo(right, (top+bottom)/2); g.stroke();
+      g.setLineDash([]);
+      g.textAlign = 'center';
+      g.fillStyle = '#8a93b8'; g.font = '700 24px Fredoka, sans-serif';
+      g.fillText('WAITING FOR THE LIVE FEED…', W/2, (top+bottom)/2 - 18);
     }
-    const pct = marketState.market?.compositeChangePct ?? 0;
-    g.fillStyle = '#fff8ec'; g.font = '700 28px Fredoka, sans-serif'; g.fillText('ETF', 34, 38);
-    g.fillStyle = pct < 0 ? '#ff8a73' : '#7bdcb5'; g.fillText(signedPct(pct), 110, 38);
+    g.textAlign = 'left';
   }
 
   function openMarketPop(){
@@ -3224,6 +3313,8 @@ animate();
   });
 })();
 </script>
+
+
 
 </body>
 </html>
