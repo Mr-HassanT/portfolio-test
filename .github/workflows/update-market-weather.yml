@@ -1,12 +1,24 @@
 name: Update market mood feed
 
+# Runs around US market hours instead of 24/7:
+#  - every 30 min, 13:00-21:30 UTC, Mon-Fri (covers 9:30-16:00 ET in both
+#    DST and standard time, with a little padding either side)
+#  - one Saturday morning run so the "last session" close is captured even
+#    if Friday's final run was missed
+# The update script itself skips the write (and therefore the commit) when
+# the basket hasn't meaningfully moved.
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '0,30 13-21 * * 1-5'
+    - cron: '15 8 * * 6'
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: market-weather
+  cancel-in-progress: false
 
 jobs:
   update-feed:

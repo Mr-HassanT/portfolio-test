@@ -1,0 +1,30 @@
+/* Focus visibility, reduced motion, and other accessibility affordances. */
+
+/* One consistent, high-contrast focus ring for every interactive element. */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible{
+  outline:3px solid var(--navy);
+  outline-offset:3px;
+  border-radius:6px;
+}
+#startBtn:focus-visible,
+.contact-links a:focus-visible{outline-offset:5px}
+
+/* Skip link for keyboard users - jumps to the readable tour transcript. */
+.skip-link{
+  position:fixed;left:12px;top:-60px;z-index:30;
+  background:var(--navy);color:var(--cream);font-family:'Fredoka',sans-serif;font-weight:700;
+  padding:.6rem 1.2rem;border-radius:0 0 12px 12px;text-decoration:none;transition:top .2s ease;
+}
+.skip-link:focus{top:0}
+
+/* Respect prefers-reduced-motion: kill decorative animation & transitions.
+   The 3D scene reads the same preference in JS and stops ambient motion. */
+@media (prefers-reduced-motion: reduce){
+  #ignition,#finale,#hud,#hint,#weatherToast,#configPanel,#desktopControls,#touchControls{transition:none}
+  #ticker .tape{animation:none}
+  .float-pop{transition:none}
+  #startBtn,.card button,.contact-links a,.pill-btn,#configToggle{transition:none}
+}

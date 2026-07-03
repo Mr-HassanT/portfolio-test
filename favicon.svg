@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#23315f"/>
+  <circle cx="46" cy="17" r="7" fill="#ffd166"/>
+  <!-- skyline as a rising candle chart -->
+  <rect x="8"  y="36" width="8" height="20" fill="#ff8a73"/>
+  <rect x="19" y="28" width="8" height="28" fill="#7bdcb5"/>
+  <rect x="30" y="32" width="8" height="24" fill="#a8c8f5"/>
+  <rect x="41" y="22" width="8" height="34" fill="#7bdcb5"/>
+  <rect x="52" y="30" width="4" height="26" fill="#fff8ec"/>
+  <!-- windows -->
+  <g fill="#fff8ec">
+    <rect x="21" y="32" width="2" height="2"/><rect x="24" y="32" width="2" height="2"/>
+    <rect x="21" y="37" width="2" height="2"/><rect x="24" y="37" width="2" height="2"/>
+    <rect x="43" y="26" width="2" height="2"/><rect x="46" y="26" width="2" height="2"/>
+    <rect x="43" y="31" width="2" height="2"/><rect x="46" y="31" width="2" height="2"/>
+  </g>
+</svg>

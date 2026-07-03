@@ -1,0 +1,4 @@
+# IDE / local tooling
+.vs/
+.claude/
+node_modules/

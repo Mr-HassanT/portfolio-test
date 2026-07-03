@@ -1,0 +1,12 @@
+{
+  "name": "hassan-city-portfolio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Interactive 3D portfolio for Muhammad Hassan Tariq - a city tour whose weather tracks the live US market.",
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check-site.mjs",
+    "update-feed": "node scripts/update-market-weather.mjs",
+    "serve": "npx serve ."
+  }
+}

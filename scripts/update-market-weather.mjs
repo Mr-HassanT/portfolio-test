@@ -1,4 +1,23 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+/*
+ * Updates data/market-weather.json - the feed that drives Hassan City's sky.
+ *
+ * How it works:
+ *  1. Fetch 5-day daily charts for the ETF basket (SPY/QQQ/VOO) from the
+ *     Yahoo Finance chart API.
+ *  2. Compute a weighted composite % change vs previous close, a mood
+ *     bucket, and a 5-session sparkline indexed to 100.
+ *  3. Skip the write when nothing meaningfully changed, so the GitHub
+ *     Action doesn't create a commit every run on a quiet tape. A
+ *     heartbeat forces a refresh if the feed is older than HEARTBEAT_HOURS,
+ *     which keeps the "updated N min ago" stamp honest.
+ *  4. If Yahoo is unreachable, keep the previous data and mark it stale
+ *     instead of failing - the site treats `stale: true` as "older data".
+ *
+ * The front end (src/market-weather.js) classifies the feed as
+ * live / closed / stale / fallback from the timestamps written here.
+ */
+
+import { readFile, writeFile } from 'node:fs/promises';
 
 const OUT = new URL('../data/market-weather.json', import.meta.url);
 const TICKERS = [
@@ -6,6 +25,12 @@ const TICKERS = [
   { symbol: 'QQQ', weight: 0.35 },
   { symbol: 'VOO', weight: 0.20 }
 ];
+
+// Commit-noise controls: skip the write when the composite moved less than
+// this many percentage points AND the mood bucket is unchanged...
+const MIN_CHANGE_PP = 0.03;
+// ...unless the feed is older than this (heartbeat, keeps timestamps honest).
+const HEARTBEAT_HOURS = 2;
 
 async function fetchJson(url) {
   const response = await fetch(url, {
@@ -78,13 +103,38 @@ async function getMarket(existing) {
       source: 'Yahoo Finance chart API'
     };
   } catch (error) {
+    // keep the last good reading rather than breaking the site
     if (existing?.market) return { ...existing.market, stale: true, error: String(error.message || error) };
     throw error;
   }
 }
 
+/* Decide whether this run is worth a commit. */
+function meaningfullyChanged(existing, market) {
+  if (!existing?.market) return true;
+  const prev = existing.market;
+  if (prev.stale !== market.stale) return true;
+  if (prev.mood !== market.mood) return true;
+  const dPct = Math.abs((prev.compositeChangePct ?? 0) - (market.compositeChangePct ?? 0));
+  if (dPct >= MIN_CHANGE_PP) return true;
+  // new session appeared in the sparkline
+  if ((prev.spark?.length ?? 0) !== (market.spark?.length ?? 0)) return true;
+  if (prev.spark?.at(-1) !== market.spark?.at(-1)) return true;
+  return false;
+}
+
+function feedAgeHours(existing) {
+  if (!existing?.updatedAt) return Infinity;
+  return (Date.now() - new Date(existing.updatedAt).getTime()) / 36e5;
+}
+
 const existing = await loadExisting();
 const market = await getMarket(existing);
+
+if (!meaningfullyChanged(existing, market) && feedAgeHours(existing) < HEARTBEAT_HOURS) {
+  console.log('No meaningful change and feed is fresh - skipping write.');
+  process.exit(0);
+}
 
 const output = {
   updatedAt: new Date().toISOString(),
@@ -94,6 +144,5 @@ const output = {
   market
 };
 
-await mkdir(new URL('../data/', import.meta.url), { recursive: true });
 await writeFile(OUT, `${JSON.stringify(output, null, 2)}\n`);
 console.log(`Updated ${OUT.pathname}`);

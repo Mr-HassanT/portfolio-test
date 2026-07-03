@@ -1,0 +1,21 @@
+name: Site checks
+
+# Guardrail against accidentally breaking the deployed site:
+# JS syntax, referenced-asset existence, and feed-shape checks.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'data/market-weather.json'   # bot commits don't need re-checking
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/check-site.mjs

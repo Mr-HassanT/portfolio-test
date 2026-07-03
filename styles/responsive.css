@@ -1,0 +1,36 @@
+/* Small-screen and input-type adaptations. */
+
+@media (max-width: 768px){
+  #configToggle{right:12px;top:12px;width:44px}
+  #configPanel{left:12px;right:12px;top:64px;width:auto;max-height:calc(100dvh - 178px);overflow:auto}
+  #modeControls button,#waypointSelect{height:40px;font-size:.7rem}
+  .weather-select-row{height:40px;font-size:.68rem;padding:0 .62rem}
+  #weatherLive{font-size:.6rem;padding:.46rem 2.32rem .46rem .52rem}
+  #weatherLive .why{font-size:.62rem}
+  #weatherLive .stamp{font-size:.56rem}
+  #weatherLiveHelp{font-size:.68rem}
+  #weatherLiveHelp li{grid-template-columns:4.35rem 1fr}
+
+  #hud{
+    display:grid;grid-template-columns:1fr 1fr;
+    gap:.4rem;bottom:50px;padding:0 .5rem;width:100%;
+  }
+  .pill{width:100%;justify-content:center;box-sizing:border-box;padding:.55rem .8rem;min-height:42px}
+  .pill .value{font-size:.95rem}
+  .pill .label{font-size:.55rem}
+
+  .pop-card{padding:1.1rem 1rem 1.2rem}
+  .card{padding:2rem 1.4rem}
+  .contact-links a{width:100%;text-align:center}
+
+  #weatherToast{font-size:.74rem;top:calc(3vh + 52px)}
+  #hint{font-size:.68rem;padding:.45rem 1rem;max-width:94vw;white-space:normal;text-align:center}
+}
+
+/* Mouse-first devices: hide touch pads. Touch-first: hide keyboard help. */
+@media (hover:hover) and (pointer:fine){
+  #touchControls{display:none}
+}
+@media (hover:none), (pointer:coarse){
+  #desktopControls{display:none}
+}

@@ -1,0 +1,107 @@
+/* Base layout, ignition screen, finale card, and no-3D fallback. */
+
+:root{
+  --navy:#23315f; --sky:#87ceeb; --coral:#ff8a73; --sun:#ffd166; --mint:#7bdcb5; --cream:#fff8ec;
+  --ink-soft:#4a5585;      /* body copy on cream */
+  --ink-label:#5c668f;     /* small labels on cream (kept dark enough to read) */
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:var(--sky);color:var(--navy);overflow-x:hidden}
+body.roaming{overflow:hidden}
+#world{position:fixed;inset:0;z-index:0}
+canvas{display:block}
+#spacer{height:1300vh}
+body.no-3d #spacer{height:auto}
+
+#ignition{
+  position:fixed;inset:0;z-index:20;text-align:center;
+  background:linear-gradient(to bottom,#9fdcf5 0%,#c9ecfa 55%,#ffe9c4 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity 1.2s ease;
+}
+#ignition.off{opacity:0;pointer-events:none}
+#ignition .sub{
+  font-family:'Fredoka',sans-serif;font-weight:600;letter-spacing:.3em;text-transform:uppercase;
+  font-size:.8rem;color:#c94f36;margin-bottom:1rem;
+}
+#ignition h1{
+  font-family:'Fredoka',sans-serif;font-weight:700;color:var(--navy);
+  font-size:clamp(2.4rem,8vw,5.5rem);line-height:1.04;
+  text-shadow:0 6px 0 rgba(35,49,95,.12);
+}
+#ignition p{margin-top:1.2rem;color:var(--ink-soft);font-weight:600;max-width:46ch;font-size:1.08rem;padding:0 6vw}
+#startBtn{
+  margin-top:2.6rem;padding:1.1rem 3.4rem;cursor:pointer;border:none;border-radius:999px;
+  font-family:'Fredoka',sans-serif;font-weight:700;letter-spacing:.08em;font-size:1.05rem;
+  color:#fff;background:var(--coral);
+  box-shadow:0 8px 0 #d96a55,0 18px 30px rgba(217,106,85,.35);
+  transition:transform .15s ease,box-shadow .15s ease;
+}
+#startBtn:hover{transform:translateY(-3px);box-shadow:0 11px 0 #d96a55,0 22px 34px rgba(217,106,85,.4)}
+#startBtn:active{transform:translateY(4px);box-shadow:0 4px 0 #d96a55}
+#startBtn[disabled]{opacity:.7;cursor:progress}
+
+#finale{
+  position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;opacity:0;pointer-events:none;transition:opacity 1s ease;
+  background:radial-gradient(ellipse at 50% 60%,rgba(27,42,94,.35),rgba(27,42,94,.7));
+}
+#finale.on{opacity:1;pointer-events:none}
+#finale:not(.on),#finale:not(.on) *{pointer-events:none!important}
+.card{
+  background:var(--cream);border:4px solid var(--navy);border-radius:28px;
+  padding:2.6rem 3rem;max-width:min(88vw,560px);
+  box-shadow:0 10px 0 rgba(35,49,95,.35),0 30px 60px rgba(10,16,40,.45);
+  pointer-events:none;
+}
+#finale.on .card{pointer-events:auto}
+.card h2{font-family:'Fredoka',sans-serif;font-weight:700;font-size:clamp(1.8rem,6vw,3rem);color:var(--navy)}
+.card p{margin-top:.9rem;color:var(--ink-soft);font-weight:600;line-height:1.6}
+.contact-links{display:flex;flex-wrap:wrap;gap:.7rem;justify-content:center;margin-top:1.6rem}
+.contact-links a{
+  display:inline-block;padding:.9rem 1.9rem;text-decoration:none;border-radius:999px;
+  font-family:'Fredoka',sans-serif;font-weight:700;font-size:.98rem;color:#fff;background:var(--coral);
+  box-shadow:0 6px 0 #d96a55;transition:transform .15s ease;min-height:44px;
+}
+.contact-links a.secondary{color:var(--navy);background:var(--cream);border:3px solid var(--navy);box-shadow:0 6px 0 rgba(35,49,95,.22)}
+.contact-links a:hover{transform:translateY(-3px)}
+.card .actions{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center;margin-top:1.1rem}
+.card button{
+  padding:.72rem 1.6rem;border:3px solid var(--navy);border-radius:999px;
+  font-family:'Fredoka',sans-serif;font-weight:700;font-size:.92rem;color:var(--navy);background:var(--cream);
+  cursor:pointer;box-shadow:0 5px 0 rgba(35,49,95,.22);transition:transform .15s ease;min-height:44px;
+}
+.card button:hover{transform:translateY(-2px)}
+.card .updated{display:block;margin-top:1.3rem;font-size:.72rem;font-weight:700;color:var(--ink-label);letter-spacing:.06em}
+
+/* The written tour. Visually hidden but always available to screen readers
+   and search engines; becomes the visible page when WebGL/Three.js cannot
+   run (body.no-3d, set by src/main.js). Not an error page - the same
+   portfolio, just in prose. */
+#fallback{
+  position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;
+  clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden;
+}
+body.no-3d #fallback{
+  position:relative;width:auto;height:auto;margin:0;clip:auto;clip-path:none;overflow:visible;
+  display:block;z-index:15;min-height:100vh;
+  background:linear-gradient(to bottom,#9fdcf5 0%,#c9ecfa 55%,#ffe9c4 100%);
+  padding:9vh 6vw 12vh;
+}
+body.no-3d #ignition,body.no-3d #hud,body.no-3d #hint,body.no-3d #ticker,
+body.no-3d #configToggle,body.no-3d #world,body.no-3d #progress{display:none}
+#fallback .inner{max-width:720px;margin:0 auto}
+#fallback h1{font-family:'Fredoka',sans-serif;font-weight:700;color:var(--navy);font-size:clamp(2rem,6vw,3.4rem);line-height:1.08}
+#fallback .lede{margin-top:1rem;color:var(--ink-soft);font-weight:600;font-size:1.05rem;line-height:1.6}
+#fallback section{margin-top:2rem;background:var(--cream);border:3px solid var(--navy);border-radius:22px;padding:1.4rem 1.6rem;box-shadow:0 7px 0 rgba(35,49,95,.16)}
+#fallback h2{font-family:'Fredoka',sans-serif;font-size:1.25rem;color:var(--navy)}
+#fallback h3{font-family:'Fredoka',sans-serif;font-size:1.02rem;color:#c94f36;margin-top:1rem}
+#fallback p,#fallback li{margin-top:.5rem;color:#3c4877;font-weight:600;line-height:1.55}
+#fallback ul{padding-left:1.2rem}
+#fallback a{color:#c94f36;font-weight:800}
+
+/* Screen-reader-only content (also readable by search engines). */
+.sr-only{
+  position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;
+  clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden;white-space:nowrap;
+}
