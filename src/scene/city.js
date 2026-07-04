@@ -608,6 +608,16 @@ export function buildCity(ctx) {
       const x = gx + (Math.random() - .5) * 10, z = gz + (Math.random() - .5) * 10;
       if (vRoads.some(rx => Math.abs(x - rx) < ROAD_CLEAR)) continue;
       if (hRoads.some(rz => Math.abs(z - rz) < ROAD_CLEAR)) continue;
+
+      // room to the nearest road centerline; the road surface + sidewalk
+      // occupies ~11 units, so a footprint's half-width must stay below
+      // (roadDist - 12.5) or the building overhangs the street. Towers get
+      // their width clamped by this instead of relying on clearance alone.
+      const roadDist = Math.min(
+        ...vRoads.map(rx => Math.abs(x - rx)),
+        ...hRoads.map(rz => Math.abs(z - rz))
+      );
+      const maxSide = Math.max(8, (roadDist - 12.5) * 2);
       if (wheelSpots.some(([wx, wz]) => { const dx = wx - x, dz = wz - z; return dx * dx + dz * dz < 24 * 24; })) continue;
       if (landmarkSpots.some(s => { const dx = s.x - x, dz = s.z - z; return dx * dx + dz * dz < (s.r + 8) * (s.r + 8); })) continue;
 
@@ -623,7 +633,7 @@ export function buildCity(ctx) {
         const rr = Math.random();
         if (rr < .28) makePark(x, z);
         else if (rr < .52) makeHouse(x, z);
-        else if (rr < .92) makeTower(x, z, 10 + Math.random() * 8, 11 + Math.random() * 13, 10 + Math.random() * 8);
+        else if (rr < .92) makeTower(x, z, Math.min(maxSide, 10 + Math.random() * 8), 11 + Math.random() * 13, Math.min(maxSide, 10 + Math.random() * 8));
         continue;
       }
 
@@ -668,7 +678,7 @@ export function buildCity(ctx) {
         makeHouse(x, z);
       } else {
         const h = minD < 64 ? 30 + Math.random() * 50 : 18 + Math.random() * 55;
-        makeTower(x, z, 12 + Math.random() * 12, h, 12 + Math.random() * 12);
+        makeTower(x, z, Math.min(maxSide, 12 + Math.random() * 12), h, Math.min(maxSide, 12 + Math.random() * 12));
       }
     }
   }
@@ -774,6 +784,16 @@ export function buildCity(ctx) {
   const _tmpColor = new THREE.Color();
   const whiteMat = () => new THREE.MeshLambertMaterial({ color: 0xffffff });
 
+  // r128 frustum-culls an InstancedMesh by its BASE geometry's bounding
+  // sphere at the origin - it knows nothing about instance positions
+  // (per-instance-aware culling only arrived in later Three releases) - so a
+  // city-wide instanced field would blink out of existence whenever the
+  // world origin leaves the camera frustum. Always draw them instead.
+  const addInstanced = mesh => {
+    mesh.frustumCulled = false;
+    scene.add(mesh);
+  };
+
   function composeInstance(mesh, index, x, y, z, rotY, localPos, localRot) {
     _actorMat.makeRotationY(rotY);
     _actorMat.setPosition(x, y, z);
@@ -802,7 +822,7 @@ export function buildCity(ctx) {
   const carCabins = new THREE.InstancedMesh(new THREE.BoxGeometry(2.1, 1, 2.6), new THREE.MeshLambertMaterial({ color: 0xcfeaf7 }), Math.max(1, nCars));
   const busBodies = new THREE.InstancedMesh(new THREE.BoxGeometry(2.8, 2.4, 9), new THREE.MeshLambertMaterial({ color: 0xffb33c }), Math.max(1, nBuses));
   const busStripes = new THREE.InstancedMesh(new THREE.BoxGeometry(2.85, .9, 9.05), new THREE.MeshLambertMaterial({ color: 0xcfeaf7 }), Math.max(1, nBuses));
-  [carBodies, carCabins, busBodies, busStripes].forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(m); });
+  [carBodies, carCabins, busBodies, busStripes].forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); addInstanced(m); });
   if (nCars) paintPalette(carBodies, nCars, carColors);
 
   const cars = [];
@@ -843,7 +863,7 @@ export function buildCity(ctx) {
   const nPeople = Math.round(170 * density);
   const peopleBodies = new THREE.InstancedMesh(new THREE.CylinderGeometry(.4, .5, 1.2, 8), whiteMat(), Math.max(1, nPeople));
   const peopleHeads = new THREE.InstancedMesh(new THREE.SphereGeometry(.42, 10, 10), whiteMat(), Math.max(1, nPeople));
-  [peopleBodies, peopleHeads].forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(m); });
+  [peopleBodies, peopleHeads].forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); addInstanced(m); });
   if (nPeople) { paintPalette(peopleBodies, nPeople, carColors); paintPalette(peopleHeads, nPeople, skinTones); }
 
   const people = [];
@@ -872,7 +892,7 @@ export function buildCity(ctx) {
   const cycleFrames = new THREE.InstancedMesh(new THREE.BoxGeometry(.2, .2, 1.2), whiteMat(), Math.max(1, nCycles));
   const cycleRiders = new THREE.InstancedMesh(new THREE.CylinderGeometry(.3, .4, .9, 8), whiteMat(), Math.max(1, nCycles));
   const cycleHeads = new THREE.InstancedMesh(new THREE.SphereGeometry(.35, 8, 8), whiteMat(), Math.max(1, nCycles));
-  [cycleWheels, cycleFrames, cycleRiders, cycleHeads].forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(m); });
+  [cycleWheels, cycleFrames, cycleRiders, cycleHeads].forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); addInstanced(m); });
   if (nCycles) { paintPalette(cycleFrames, nCycles, carColors); paintPalette(cycleRiders, nCycles, carColors); paintPalette(cycleHeads, nCycles, skinTones); }
 
   const cycles = [];
@@ -906,6 +926,10 @@ export function buildCity(ctx) {
     updatePeople(dt, t);
     updateCycles(dt, t);
   }
+  // Lay everything out immediately: the animate loop skips updateTraffic()
+  // under prefers-reduced-motion, and without this first pass every instance
+  // matrix would stay at the identity - a pile of cars at the world origin.
+  updateTraffic(0, 0);
 
   /* roadside trees - static, so they're written once and never revisited */
   const nTrees = Math.round(560 * density);
@@ -913,7 +937,8 @@ export function buildCity(ctx) {
   const leafColorPalette = [0x6ca371, 0x7fb87a, 0x5d9367];
   const treeTrunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(.3, .5, 2.5, 6), trunkMat, Math.max(1, nTrees));
   const treeLeaves = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1), treeLeafMat, Math.max(1, nTrees));
-  scene.add(treeTrunks, treeLeaves);
+  addInstanced(treeTrunks);
+  addInstanced(treeLeaves);
   for (let i = 0; i < nTrees; i++) {
     const road = vRoads[(Math.random() * vRoads.length) | 0];
     const side = Math.random() < .5 ? -12 : 12;
