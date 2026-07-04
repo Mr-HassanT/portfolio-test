@@ -124,7 +124,12 @@ export function startScene() {
    * user scrolls, the camera can only ever travel the path at a bounded pace -
    * it can't be flung to an arbitrary point in a single jump. */
   let scrollT = 0, smoothT = 0, lastScroll = 0, speedKmh = 0, bank = 0;
-  const MAX_T_PER_SEC = .21;   // matches the original pacing (full path in ~4.8s at max)
+  // rush: 0 when the camera has settled, ->1 while it's cruising near the
+  // speed cap. Used to switch off the "aim at the story card" behaviour
+  // during fast travel - constantly whipping the view toward each card as
+  // it flies past was the main source of fast-scroll chaos.
+  let rush = 0;
+  const MAX_T_PER_SEC = .13;   // hard cap: full path in ~7.7s no matter how hard you scroll
   const EASE_LAMBDA = 5;
   const lookSmooth = new THREE.Vector3(0, ALT, 0);
   let first = true;
@@ -241,10 +246,16 @@ export function startScene() {
 
     if (reduceMotion) {
       smoothT = scrollT;
+      rush = 0;
     } else {
       const eased = THREE.MathUtils.damp(smoothT, scrollT, EASE_LAMBDA, dt);
       const maxStep = MAX_T_PER_SEC * dt;
-      smoothT += THREE.MathUtils.clamp(eased - smoothT, -maxStep, maxStep);
+      const step = THREE.MathUtils.clamp(eased - smoothT, -maxStep, maxStep);
+      smoothT += step;
+      // how close to the speed cap this frame ran (0..1), eased over ~1/3s
+      const speedFrac = maxStep > 0 ? Math.abs(step) / maxStep : 0;
+      const rushTarget = THREE.MathUtils.smoothstep(speedFrac, .35, .85);
+      rush += (rushTarget - rush) * Math.min(1, dt * 3);
     }
     if (!Number.isFinite(smoothT)) smoothT = scrollT || 0;
     let k = THREE.MathUtils.clamp(smoothT, 0, 1);
@@ -266,12 +277,15 @@ export function startScene() {
       if (nextCh && nextD < 240) {
         const aimIn = THREE.MathUtils.smoothstep(240 - nextD, 0, 150);
         const aimOut = THREE.MathUtils.smoothstep(nextD, 35, 70);
-        level = aimIn * aimOut;
+        // while rushing past stops, keep the eyes on the road ahead instead
+        // of swinging toward every card the camera blows past
+        level = aimIn * aimOut * (1 - rush);
         lookTarget.lerp(nextCh.grp.position, level * .8);
       }
 
       if (first) { lookSmooth.copy(lookTarget); first = false; }
-      lookSmooth.lerp(lookTarget, reduceMotion ? 1 : .08);
+      // frame-rate independent ease (~.09 at 60fps, same feel at 30 or 144)
+      lookSmooth.lerp(lookTarget, reduceMotion ? 1 : 1 - Math.exp(-5.5 * dt));
 
       const cam2look = new THREE.Vector3().subVectors(lookSmooth, camPos);
       const pathForward = new THREE.Vector3().subVectors(lookPos, camPos).normalize();
@@ -328,7 +342,9 @@ export function startScene() {
       chapters.forEach((c, i) => { if (k > c.t - .03) stop = i; });
     }
     dEl.textContent = stop;
-    hud.setFinale(state.mode === 'story' && scrollT > .965);
+    // wait for the camera to actually arrive before showing the finale -
+    // on a fast scroll to the bottom, scrollT hits 1 several seconds early
+    hud.setFinale(state.mode === 'story' && scrollT > .965 && smoothT > .95);
 
     chapters.forEach(ch => {
       if (!ch.grp) return;

@@ -598,9 +598,45 @@ export function buildCity(ctx) {
     ...plazaSpots.map(p => ({ ...p, r: 19 })), // stop plazas
   ];
 
-  // civic buildings get breathing room - one bank per block, one mosque per district
-  const civicSpots = { bank: [], mosque: [] };
   const farFrom = (list, x, z, min) => list.every(p => { const dx = p.x - x, dz = p.z - z; return dx * dx + dz * dz > min * min; });
+  const nearestDist = (samples, x, z) => {
+    let best = 1e18;
+    for (const p of samples) { const dx = p.x - x, dz = p.z - z; const dd = dx * dx + dz * dz; if (dd < best) best = dd; }
+    return Math.sqrt(best);
+  };
+
+  /* ---- reserved plots for banks & mosques ----
+   * Civic buildings used to be dropped inline by the grid loop, but they
+   * rotate to face the flight path (banks) and have wide plinths (mosques),
+   * so with grid jitter their corners could still overlap neighbouring
+   * towers. Instead their plots are now chosen up front and pushed into
+   * landmarkSpots with a radius big enough that the grid loop (which skips
+   * anything within spot.r + 8) can never build close enough to touch them. */
+  const civicPlots = [];
+  function reserveCivicPlots(count, kind, spotR, sameKindGap) {
+    let attempts = 0, placed = 0;
+    while (placed < count && attempts++ < 6000) {
+      const x = -430 + Math.random() * 860;
+      const z = -1760 + Math.random() * 1880;
+      if (vRoads.some(rx => Math.abs(x - rx) < BIG_ROAD_CLEAR)) continue;
+      if (hRoads.some(rz => Math.abs(z - rz) < BIG_ROAD_CLEAR)) continue;
+      if (!farFrom(civicPlots.filter(p => p.kind === kind), x, z, sameKindGap)) continue;
+      if (!farFrom(civicPlots, x, z, 64)) continue;
+      if (!farFrom(wheelSpots.map(([wx, wz]) => ({ x: wx, z: wz })), x, z, 42)) continue;
+      if (landmarkSpots.some(s => { const dx = s.x - x, dz = s.z - z; return dx * dx + dz * dz < (s.r + spotR) * (s.r + spotR); })) continue;
+      if (nearestDist(metroSamples, x, z) < 22) continue;   // clear of pylons
+      if (nearestDist(pathSamples, x, z) < 40) continue;    // out of the lush flight corridor
+      if (nearestDist(anchors, x, z) < 72) continue;        // plazas keep their park ring
+      civicPlots.push({ x, z, kind });
+      landmarkSpots.push({ x, z, r: spotR });
+      placed++;
+    }
+  }
+  // spotR 26 => nearest tower center is 34+ away; a rotated bank corner
+  // (~15.5) plus a max tower corner (~17.7) still fit with room to spare
+  reserveCivicPlots(7, 'bank', 26, 150);
+  reserveCivicPlots(4, 'mosque', 26, 180);
+  civicPlots.forEach(p => (p.kind === 'bank' ? makeGroundBank(p.x, p.z) : makeMosque(p.x, p.z)));
 
   /* ---- the metropolis grid ---- */
   for (let gz = 150; gz > -1800; gz -= gridStep) {
@@ -660,19 +696,8 @@ export function buildCity(ctx) {
       }
       if (Math.random() < .03) { makePark(x, z); continue; } // pocket parks between blocks
 
-      // banks/mosques rotate to face the flight path, so their footprint can
-      // point any direction - keep them well clear of every road regardless.
-      const clearOfRoads = !vRoads.some(rx => Math.abs(x - rx) < BIG_ROAD_CLEAR) &&
-        !hRoads.some(rz => Math.abs(z - rz) < BIG_ROAD_CLEAR);
-
       const r = Math.random();
-      if (r < 0.018 && clearOfRoads && farFrom(civicSpots.mosque, x, z, 180) && farFrom(civicSpots.bank, x, z, 60)) {
-        civicSpots.mosque.push({ x, z });
-        makeMosque(x, z);
-      } else if (r >= 0.018 && r < 0.06 && clearOfRoads && farFrom(civicSpots.bank, x, z, 150) && farFrom(civicSpots.mosque, x, z, 60)) {
-        civicSpots.bank.push({ x, z });
-        makeGroundBank(x, z);
-      } else if (Math.abs(gx) > 320) {
+      if (Math.abs(gx) > 320) {
         makeHouse(x, z); // outer ring stays suburban
       } else if (r < 0.24 && Math.abs(gx) > 140) {
         makeHouse(x, z);
@@ -683,82 +708,140 @@ export function buildCity(ctx) {
     }
   }
 
-  /* ---- elevated metro loop ---- */
+  /* ---- elevated metro loop ----
+   * A solid monorail-style guideway instead of the old floating tubes and
+   * sparse sleepers: overlapping instanced deck segments hug the curve with
+   * a hanging skirt beam underneath, cream handrails run along both edges,
+   * and pylons land every ~45 units - except where the line crosses a road,
+   * where the span simply bridges over so nothing stands on the tarmac. */
   const metroLoop = (() => {
     const railY = ctx.METRO_RAIL_Y;
     const curve = ctx.metroCurve;
-
-    const railMat = new THREE.MeshLambertMaterial({ color: 0x23315f });
-    const sleeperMat = new THREE.MeshLambertMaterial({ color: 0xf7f3ea });
-    const pylonMat = new THREE.MeshLambertMaterial({ color: 0x5f7fc0 });
-    const trainMat = new THREE.MeshLambertMaterial({ color: 0xff8a73 });
-    const glassMat = new THREE.MeshLambertMaterial({ color: 0xcfeaf7, emissive: 0x88c8ff, emissiveIntensity: .18 });
-    const accentMat = new THREE.MeshLambertMaterial({ color: 0xffd166 });
-
     const g = new THREE.Group();
-    const leftPts = [], rightPts = [];
-    const side = new THREE.Vector3();
-    const up = new THREE.Vector3(0, 1, 0);
-    const tmpP = new THREE.Vector3();
-    const tmpT = new THREE.Vector3();
-    for (let i = 0; i <= 180; i++) {
-      const u = i / 180;
-      curve.getPointAt(u, tmpP);
-      curve.getTangentAt(u, tmpT).normalize();
-      side.crossVectors(up, tmpT).normalize();
-      leftPts.push(tmpP.clone().addScaledVector(side, -2.7));
-      rightPts.push(tmpP.clone().addScaledVector(side, 2.7));
-    }
 
-    [leftPts, rightPts].forEach(points => {
-      const rail = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, true), 192, .42, 8, true), railMat);
-      g.add(rail);
+    // warm-concrete beam with periwinkle accents and thin navy handrails -
+    // matches the city's cream-surfaces-with-navy-outlines look
+    const concreteMat = new THREE.MeshLambertMaterial({ color: 0xe8e1cf });
+    const accentMat = new THREE.MeshLambertMaterial({ color: 0x5f7fc0 });
+    const steelMat = new THREE.MeshLambertMaterial({ color: 0x23315f });
+    const dummy = new THREE.Object3D();
+
+    // deck + skirt: instanced box segments, slightly overlapped so the
+    // chain of chords reads as one continuous beam
+    const DECK_SEGS = 240;
+    const deck = new THREE.InstancedMesh(new THREE.BoxGeometry(6.8, 1.3, 1), concreteMat, DECK_SEGS);
+    const skirt = new THREE.InstancedMesh(new THREE.BoxGeometry(3.4, 1.5, 1), accentMat, DECK_SEGS);
+    const pA = new THREE.Vector3(), pB = new THREE.Vector3();
+    for (let i = 0; i < DECK_SEGS; i++) {
+      curve.getPointAt(i / DECK_SEGS, pA);
+      curve.getPointAt(((i + 1) % DECK_SEGS) / DECK_SEGS, pB);
+      const len = pA.distanceTo(pB) * 1.22;   // overlap hides the joints
+      dummy.position.set((pA.x + pB.x) / 2, railY - .65, (pA.z + pB.z) / 2);
+      dummy.rotation.set(0, Math.atan2(pB.x - pA.x, pB.z - pA.z), 0);
+      dummy.scale.set(1, 1, len);
+      dummy.updateMatrix();
+      deck.setMatrixAt(i, dummy.matrix);
+      dummy.position.y = railY - 1.9;
+      dummy.updateMatrix();
+      skirt.setMatrixAt(i, dummy.matrix);
+    }
+    deck.frustumCulled = skirt.frustumCulled = false;
+    g.add(deck, skirt);
+
+    // cream handrails along both deck edges
+    const up = new THREE.Vector3(0, 1, 0), side = new THREE.Vector3();
+    const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3();
+    [-3.05, 3.05].forEach(off => {
+      const pts = [];
+      for (let i = 0; i <= 200; i++) {
+        curve.getPointAt(i / 200, tmpP);
+        curve.getTangentAt(i / 200, tmpT).normalize();
+        side.crossVectors(up, tmpT).normalize();
+        pts.push(new THREE.Vector3(tmpP.x + side.x * off, railY + .45, tmpP.z + side.z * off));
+      }
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 220, .17, 6, true), steelMat));
     });
 
-    for (let i = 0; i < 60; i++) {
-      const u = i / 60;
-      curve.getPointAt(u, tmpP);
-      curve.getTangentAt(u, tmpT).normalize();
-      side.crossVectors(up, tmpT).normalize();
-
-      const sleeper = new THREE.Mesh(new THREE.BoxGeometry(7.2, .35, 1), sleeperMat);
-      sleeper.position.copy(tmpP);
-      sleeper.rotation.y = Math.atan2(tmpT.x, tmpT.z);
-      g.add(sleeper);
-
-      if (i % 3 === 0) {
-        const pylon = new THREE.Mesh(new THREE.CylinderGeometry(.55, .8, railY + 1, 8), pylonMat);
-        pylon.position.set(tmpP.x, (railY - 1) / 2, tmpP.z);
-        const cap = new THREE.Mesh(new THREE.BoxGeometry(8.6, .8, 1.4), pylonMat);
-        cap.position.set(tmpP.x, railY - .7, tmpP.z);
-        cap.rotation.y = sleeper.rotation.y;
-        g.add(pylon, cap);
-      }
+    // pylons: frequent enough that the beam never floats, skipped over roads
+    const N_PYLONS = 90;
+    const overRoad = (x, z) => vRoads.some(rx => Math.abs(x - rx) < 13) || hRoads.some(rz => Math.abs(z - rz) < 13);
+    const pylonSpots = [];
+    for (let i = 0; i < N_PYLONS; i++) {
+      curve.getPointAt(i / N_PYLONS, tmpP);
+      if (overRoad(tmpP.x, tmpP.z)) continue;
+      curve.getTangentAt(i / N_PYLONS, tmpT).normalize();
+      pylonSpots.push({ x: tmpP.x, z: tmpP.z, yaw: Math.atan2(tmpT.x, tmpT.z) });
     }
+    const pylons = new THREE.InstancedMesh(new THREE.CylinderGeometry(1.0, 1.7, railY - 2, 8), concreteMat, Math.max(1, pylonSpots.length));
+    const caps = new THREE.InstancedMesh(new THREE.BoxGeometry(7.6, 1.0, 2.4), accentMat, Math.max(1, pylonSpots.length));
+    pylonSpots.forEach((p, i) => {
+      dummy.position.set(p.x, (railY - 2) / 2, p.z);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      pylons.setMatrixAt(i, dummy.matrix);
+      dummy.position.set(p.x, railY - 2.15, p.z);
+      dummy.rotation.set(0, p.yaw, 0);
+      dummy.updateMatrix();
+      caps.setMatrixAt(i, dummy.matrix);
+    });
+    pylons.frustumCulled = caps.frustumCulled = false;
+    g.add(pylons, caps);
+
+    /* trains: cream body, coral band + roof, continuous smoked-glass window
+       strip, doors, bogies riding the deck, and a proper nose with headlights
+       on the LEADING end (cars trail behind the lead car at negative local z,
+       so the nose points along the direction of travel). */
+    const bodyMat = new THREE.MeshLambertMaterial({ color: 0xf7f3ea });
+    const bandMat = new THREE.MeshLambertMaterial({ color: 0xff8a73 });
+    const glassMat = new THREE.MeshLambertMaterial({ color: 0x2a3a6e, emissive: 0x88c8ff, emissiveIntensity: .28 });
+    const doorMat = new THREE.MeshLambertMaterial({ color: 0xd9d3c4 });
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xffd166 });
 
     const trains = [];
+    function makeCar(lead) {
+      const car = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(5, 3, 11.8), bodyMat);
+      body.position.y = 2.1;
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(4.4, .4, 11.2), bandMat);
+      roof.position.y = 3.75;
+      const band = new THREE.Mesh(new THREE.BoxGeometry(5.08, .55, 11.85), bandMat);
+      band.position.y = 1.5;
+      const windows = new THREE.Mesh(new THREE.BoxGeometry(5.08, 1.0, 10.2), glassMat);
+      windows.position.y = 2.75;
+      car.add(body, roof, band, windows);
+      [-2.9, 2.9].forEach(dz => {
+        const door = new THREE.Mesh(new THREE.BoxGeometry(5.06, 1.75, 1.15), doorMat);
+        door.position.set(0, 1.45, dz);
+        car.add(door);
+      });
+      [-3.6, 3.6].forEach(dz => {
+        const bogie = new THREE.Mesh(new THREE.BoxGeometry(3.4, .8, 2.4), steelMat);
+        bogie.position.set(0, .35, dz);
+        car.add(bogie);
+      });
+      if (lead) {
+        const nose = new THREE.Mesh(new THREE.BoxGeometry(4.6, 2.5, 1.7), steelMat);
+        nose.position.set(0, 2.0, 6.3);
+        nose.rotation.x = -.18;
+        car.add(nose);
+        [-1.5, 1.5].forEach(dx => {
+          const lamp = new THREE.Mesh(new THREE.BoxGeometry(.7, .35, .25), lightMat);
+          lamp.position.set(dx, 1.35, 7.05);
+          car.add(lamp);
+        });
+      }
+      return car;
+    }
     function makeTrain() {
       const train = new THREE.Group();
       for (let i = 0; i < 3; i++) {
-        const car = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.BoxGeometry(5.2, 3.2, 12), trainMat);
-        body.position.y = 1.8;
-        const stripe = new THREE.Mesh(new THREE.BoxGeometry(5.3, .7, 12.1), accentMat);
-        stripe.position.y = 2.35;
-        for (let w = -1; w <= 1; w++) {
-          const window = new THREE.Mesh(new THREE.BoxGeometry(5.36, .95, 1.65), glassMat);
-          window.position.set(0, 2.55, w * 3);
-          car.add(window);
-        }
-        const nose = new THREE.Mesh(new THREE.BoxGeometry(5.25, 2.6, 1.1), navyMat);
-        nose.position.set(0, 1.85, -6.55);
-        car.position.z = i * 13.5;
-        car.add(body, stripe, nose);
+        const car = makeCar(i === 0);
+        car.position.z = -i * 13.2;
         train.add(car);
       }
       g.add(train);
       trains.push(train);
-      return train;
     }
     const trainOffsets = state.isMobile
       ? [.05, .2, .35, .5, .65, .8]
@@ -815,28 +898,37 @@ export function buildCity(ctx) {
 
   function randomRoadZ() { return Z_MAX - Math.random() * (Z_MAX - Z_MIN); }
 
-  /* cars + buses share the road lanes */
-  const nCars = Math.round(300 * density);
-  const nBuses = Math.round(40 * density);
-  const carBodies = new THREE.InstancedMesh(new THREE.BoxGeometry(2.4, 1.1, 5), whiteMat(), Math.max(1, nCars));
-  const carCabins = new THREE.InstancedMesh(new THREE.BoxGeometry(2.1, 1, 2.6), new THREE.MeshLambertMaterial({ color: 0xcfeaf7 }), Math.max(1, nCars));
-  const busBodies = new THREE.InstancedMesh(new THREE.BoxGeometry(2.8, 2.4, 9), new THREE.MeshLambertMaterial({ color: 0xffb33c }), Math.max(1, nBuses));
-  const busStripes = new THREE.InstancedMesh(new THREE.BoxGeometry(2.85, .9, 9.05), new THREE.MeshLambertMaterial({ color: 0xcfeaf7 }), Math.max(1, nBuses));
+  /* cars + buses: lane-based traffic. Every lane (road side x direction)
+   * moves at one shared speed with evenly spaced slots, so vehicles keep
+   * their gaps forever and can never drive through each other - the old
+   * scheme gave every car a random speed in a shared lane, which guaranteed
+   * rear-end pile-ups. Jitter is bounded to a fraction of the slot gap. */
+  const lanes = [];
+  vRoads.forEach(road => [1, -1].forEach(dir => lanes.push({
+    x: road + dir * 3.4, dir, speed: 10 + Math.random() * 8
+  })));
+  const spanZ = Z_MAX - Z_MIN;
+  const perLane = Math.max(4, Math.round(Math.round(340 * density) / lanes.length));
+  const cars = [], buses = [];
+  lanes.forEach((lane, li) => {
+    const gap = spanZ / perLane;
+    for (let i = 0; i < perLane; i++) {
+      const rec = {
+        x: lane.x + (Math.random() - .5) * .8,
+        z: Z_MIN + (i + .5) * gap + (Math.random() - .5) * gap * .3,
+        dir: lane.dir, speed: lane.speed
+      };
+      // same-speed lane means the slot gaps never close, so a bus in every
+      // seventh slot stays exactly as far from its neighbours as a car would
+      if ((i + li) % 7 === 0) buses.push(rec); else cars.push(rec);
+    }
+  });
+  const carBodies = new THREE.InstancedMesh(new THREE.BoxGeometry(2.4, 1.1, 5), whiteMat(), Math.max(1, cars.length));
+  const carCabins = new THREE.InstancedMesh(new THREE.BoxGeometry(2.1, 1, 2.6), new THREE.MeshLambertMaterial({ color: 0xcfeaf7 }), Math.max(1, cars.length));
+  const busBodies = new THREE.InstancedMesh(new THREE.BoxGeometry(2.8, 2.4, 9), new THREE.MeshLambertMaterial({ color: 0xffb33c }), Math.max(1, buses.length));
+  const busStripes = new THREE.InstancedMesh(new THREE.BoxGeometry(2.85, .9, 9.05), new THREE.MeshLambertMaterial({ color: 0xcfeaf7 }), Math.max(1, buses.length));
   [carBodies, carCabins, busBodies, busStripes].forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); addInstanced(m); });
-  if (nCars) paintPalette(carBodies, nCars, carColors);
-
-  const cars = [];
-  for (let i = 0; i < nCars; i++) {
-    const road = vRoads[(Math.random() * vRoads.length) | 0];
-    const dir = Math.random() < .5 ? 1 : -1;
-    cars.push({ x: road + (dir > 0 ? 3.4 : -3.4) + (Math.random() - .5) * 2, z: randomRoadZ(), dir, speed: 13 + Math.random() * 7 });
-  }
-  const buses = [];
-  for (let i = 0; i < nBuses; i++) {
-    const road = vRoads[(Math.random() * vRoads.length) | 0];
-    const dir = Math.random() < .5 ? 1 : -1;
-    buses.push({ x: road + (dir > 0 ? 3.4 : -3.4) + (Math.random() - .5) * 2, z: randomRoadZ(), dir, speed: 9 + Math.random() * 7 });
-  }
+  if (cars.length) paintPalette(carBodies, cars.length, carColors);
 
   function updateVehicles(dt) {
     cars.forEach((v, i) => {
