@@ -578,12 +578,15 @@ export function buildCity(ctx) {
     for (const rz of hRoads) { const d = z - rz; if (Math.abs(d) < clear) z = rz + (d >= 0 ? clear : -clear); }
     return { x, z };
   }
+  // dodgeRoads clearances must cover each landmark's true reach from its
+  // center (board halves, aprons, parked cars...) PLUS the ~11 units of
+  // road + sidewalk, or the landmark ends up standing on the street.
   const wsA = path.getPointAt(.10), wsB = path.getPointAt(.55), afterA = anchors[5];
-  const wsSpot1 = dodgeRoads(wsA.x + 62, wsA.z, 22);
-  const wsSpot2 = dodgeRoads(wsB.x - 62, wsB.z, 22);
+  const wsSpot1 = dodgeRoads(wsA.x + 62, wsA.z, 27);    // board reaches ~12.6
+  const wsSpot2 = dodgeRoads(wsB.x - 62, wsB.z, 27);
   const ovalSpot = { x: 70, z: dodgeRoads(70, afterA.z + 42, 42).z }; // x=70 sits centered between the x=34 and x=106 roads
-  const padelSpot = dodgeRoads(-74, afterA.z + 30, 24);
-  const garageSpot = dodgeRoads(70, afterA.z - 84, 20);
+  const padelSpot = dodgeRoads(-74, afterA.z + 30, 28); // rotated apron reaches ~15.3
+  const garageSpot = dodgeRoads(70, afterA.z - 84, 28); // hall + parked GT reach ~13.5
   const plazaSpots = anchors.map(a => dodgeRoads(a.x, a.z, 27));
   const landmarkSpots = [
     { ...wsSpot1, r: 20 },            // weather station 1 (early, on the right)
@@ -768,6 +771,8 @@ export function buildCity(ctx) {
       curve.getPointAt(i / N_PYLONS, tmpP);
       if (overRoad(tmpP.x, tmpP.z)) continue;
       if (nearestDist(pathSamples, tmpP.x, tmpP.z) < 16) continue;
+      // never plant a column inside a landmark (cricket pitch, plazas, ...)
+      if (landmarkSpots.some(s => { const dx = s.x - tmpP.x, dz = s.z - tmpP.z; return dx * dx + dz * dz < (s.r + 3) * (s.r + 3); })) continue;
       curve.getTangentAt(i / N_PYLONS, tmpT).normalize();
       pylonSpots.push({ x: tmpP.x, z: tmpP.z, yaw: Math.atan2(tmpT.x, tmpT.z) });
     }
@@ -1039,8 +1044,10 @@ export function buildCity(ctx) {
   addInstanced(treeLeaves);
   for (let i = 0; i < nTrees; i++) {
     const road = vRoads[(Math.random() * vRoads.length) | 0];
-    const side = Math.random() < .5 ? -12 : 12;
-    const x = road + side + (Math.random() - .5) * 2;
+    // verge planting: trunks at 12-13 from the centerline keep even the
+    // widest canopy (r~3) clear of the 8-unit roadway
+    const side = Math.random() < .5 ? -12.5 : 12.5;
+    const x = road + side + (Math.random() - .5);
     const z = randomRoadZ();
 
     _dummy.position.set(x, 1.25, z);
@@ -1169,11 +1176,15 @@ export function buildCity(ctx) {
   });
 
   // cricket oval - the weekend cover-drive facility
+  // The oval lives in the 50-unit-wide block between the x=34 and x=106
+  // roads, so everything must fit inside a ~24-unit radius. The stand and
+  // scoreboard sit on the local x axis (perpendicular to the group's
+  // path-facing yaw) where the block is long, never toward the roads.
   function makeCricketGround(x, z) {
     const g = new THREE.Group();
-    const grass = new THREE.Mesh(new THREE.CylinderGeometry(28, 29, .4, 26), new THREE.MeshLambertMaterial({ color: 0x6ca371 }));
+    const grass = new THREE.Mesh(new THREE.CylinderGeometry(23, 24, .4, 26), new THREE.MeshLambertMaterial({ color: 0x6ca371 }));
     grass.position.y = .2;
-    const rope = new THREE.Mesh(new THREE.TorusGeometry(25.5, .3, 6, 30), creamMat);
+    const rope = new THREE.Mesh(new THREE.TorusGeometry(21, .3, 6, 30), creamMat);
     rope.rotation.x = Math.PI / 2; rope.position.y = .45;
     const pitch = new THREE.Mesh(new THREE.BoxGeometry(3.6, .45, 13), new THREE.MeshLambertMaterial({ color: 0xd9c28f }));
     pitch.position.y = .42;
@@ -1189,32 +1200,36 @@ export function buildCity(ctx) {
     for (let i = 0; i < 4; i++) {
       const a = i * Math.PI / 2 + Math.PI / 4;
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(.35, .5, 18, 8), navyMat);
-      pole.position.set(Math.cos(a) * 23.5, 9, Math.sin(a) * 23.5);
+      pole.position.set(Math.cos(a) * 19, 9, Math.sin(a) * 19);
       const head = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.2, .8), new THREE.MeshLambertMaterial({ color: 0xfff8ec, emissive: 0xfff2c4, emissiveIntensity: .5 }));
-      head.position.set(Math.cos(a) * 23.5, 18.6, Math.sin(a) * 23.5);
-      head.lookAt(x, 2, z);
+      head.position.set(Math.cos(a) * 19, 18.6, Math.sin(a) * 19);
+      head.lookAt(0, 2, 0);   // aim at the pitch (local space - group is still at the origin)
       g.add(pole, head);
     }
-    // tiny pavilion stand
+    // tiny pavilion stand along the long side of the block
     const stand = new THREE.Group();
     for (let r = 0; r < 3; r++) {
       const row = new THREE.Mesh(new THREE.BoxGeometry(14, .9, 1.6), new THREE.MeshLambertMaterial({ color: [0xff8a73, 0xffd166, 0x7bdcb5][r] }));
       row.position.set(0, .45 + r * .9, -r * 1.5);
       stand.add(row);
     }
-    stand.position.set(0, 0, 30);
+    stand.rotation.y = -Math.PI / 2;   // rows step away from the pitch
+    stand.position.set(24.5, 0, 0);
     g.add(stand);
-    // scoreboard
+    // scoreboard: single-sided face toward the pitch with a navy backing,
+    // so there is no mirrored text no matter where the camera is
     const scTex = canvasTexture(scoreboardCanvas());
-    const board = new THREE.Mesh(new THREE.PlaneGeometry(13, 4.9), new THREE.MeshBasicMaterial({ map: scTex, side: THREE.DoubleSide }));
-    board.position.set(0, 7.4, 31.4);
-    board.rotation.y = Math.PI;
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(13, 4.9), new THREE.MeshBasicMaterial({ map: scTex }));
+    board.position.set(28, 7.4, 0);
+    board.rotation.y = -Math.PI / 2;
+    const backing = new THREE.Mesh(new THREE.BoxGeometry(.5, 5.5, 13.8), navyMat);
+    backing.position.set(28.35, 7.4, 0);
     const bPole = new THREE.Mesh(new THREE.CylinderGeometry(.3, .4, 5, 8), navyMat);
-    bPole.position.set(0, 2.5, 31.4);
-    g.add(board, bPole);
+    bPole.position.set(28.35, 2.5, 0);
+    g.add(board, backing, bPole);
 
     registerClickable(g, { type: 'story', data: { meta: 'After hours', title: 'Hassan City Cricket Ground', text: 'Weekend fixtures only. The cover drive is well backtested, the running between wickets remains a work-in-progress model.' } });
-    g.rotation.y = yawToPath(x, z);   // scoreboard + stand read from the flight path
+    g.rotation.y = yawToPath(x, z);
     g.position.set(x, 0, z);
     scene.add(g);
   }

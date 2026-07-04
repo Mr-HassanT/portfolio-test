@@ -21,10 +21,15 @@ export function buildCards(ctx) {
     const grp = new THREE.Group();
     const shadow = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ color: 0x23315f, transparent: true, opacity: 0, side: THREE.DoubleSide }));
     shadow.position.set(1, -1, -.7);
-    const board = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, side: THREE.DoubleSide }));
+    // front face is single-sided; a navy back panel covers the reverse so
+    // free-roamers behind a card see a clean board, not mirrored text
+    const board = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0 }));
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ color: 0x23315f, transparent: true, opacity: 0 }));
+    back.rotation.y = Math.PI;
+    back.position.z = -.05;
 
-    grp.add(shadow, board);
-    grp.userData = { W, H, fadeMats: [board.material, shadow.material] };
+    grp.add(shadow, board, back);
+    grp.userData = { W, H, fadeMats: [board.material, shadow.material, back.material] };
     return grp;
   }
 

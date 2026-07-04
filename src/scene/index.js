@@ -102,9 +102,24 @@ export function startScene() {
     const s = THREE.MathUtils.smoothstep(t, .66, .80);
     return THREE.MathUtils.lerp(METRO_FRONT_OFFSET, -METRO_FRONT_OFFSET, s);
   };
+  // Explicit turnaround control points: without them the closed catmull
+  // spline bridges the two runs with whatever bulge it likes - after the
+  // west-side crossing the end gap is ~240 units, and the auto-bulge looped
+  // straight over the after-hours district (pylon through the cricket
+  // pitch). Both U-turns now sweep deliberately beyond the tour area.
   const metroCurve = new THREE.CatmullRomCurve3([
     ...metroOffsetRun(frontOffsetAt, .015, .985, 72),
+    // far turnaround: wide sweep behind the landing pad, past the city edge
+    new THREE.Vector3(-70, METRO_RAIL_Y, -1615),
+    new THREE.Vector3(-20, METRO_RAIL_Y, -1655),
+    new THREE.Vector3(70, METRO_RAIL_Y, -1665),
+    new THREE.Vector3(140, METRO_RAIL_Y, -1630),
+    new THREE.Vector3(168, METRO_RAIL_Y, -1585),
     ...metroOffsetRun(METRO_RETURN_OFFSET, .985, .015, 34),
+    // near turnaround: small loop north of the take-off point
+    new THREE.Vector3(160, METRO_RAIL_Y, 150),
+    new THREE.Vector3(120, METRO_RAIL_Y, 172),
+    new THREE.Vector3(80, METRO_RAIL_Y, 150),
   ], true, 'centripetal');
   const metroSamples = metroCurve.getPoints(720);
 
@@ -366,6 +381,7 @@ export function startScene() {
       const o = Math.min(fadeIn, close, passed);
       ch.card.userData.fadeMats[0].opacity = o;
       ch.card.userData.fadeMats[1].opacity = o * .26;
+      if (ch.card.userData.fadeMats[2]) ch.card.userData.fadeMats[2].opacity = o;
     });
 
     if (!reduceMotion) {
