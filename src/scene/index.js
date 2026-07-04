@@ -114,20 +114,28 @@ export function startScene() {
   const controls = buildControls(ctx, runInteraction);
   const { freeState, ROAM_BOUNDS } = controls;
 
-  /* ---- scroll-driven story flight ---- */
+  /* ---- scroll-driven story flight ----
+   * scrollT is read fresh once per animation frame (not per 'scroll' event -
+   * trackpad/mouse-wheel flicks can fire dozens of those between frames,
+   * which used to mean redundant DOM writes and, under heavy scene load,
+   * queued-up input the camera would try to "catch up" on all at once).
+   * smoothT chases scrollT with a frame-rate-independent ease (THREE.MathUtils.damp)
+   * plus a hard per-second speed cap, so no matter how far or how fast the
+   * user scrolls, the camera can only ever travel the path at a bounded pace -
+   * it can't be flung to an arbitrary point in a single jump. */
   let scrollT = 0, smoothT = 0, lastScroll = 0, speedKmh = 0, bank = 0;
-  const MAX_STEP = .0035;
+  const MAX_T_PER_SEC = .21;   // matches the original pacing (full path in ~4.8s at max)
+  const EASE_LAMBDA = 5;
   const lookSmooth = new THREE.Vector3(0, ALT, 0);
   let first = true;
 
   const progressEl = document.getElementById('progress');
-  function onScroll() {
+  function readScroll() {
     const max = document.body.scrollHeight - innerHeight;
-    scrollT = max > 0 ? scrollY / max : 0;
+    scrollT = THREE.MathUtils.clamp(max > 0 ? scrollY / max : 0, 0, 1);
     progressEl.style.width = (scrollT * 100) + '%';
     progressEl.setAttribute('aria-valuenow', Math.round(scrollT * 100));
   }
-  addEventListener('scroll', onScroll, { passive: true });
 
   /* ---- HUD elements the render loop updates directly ---- */
   const speedEl = document.getElementById('speed');
@@ -229,8 +237,16 @@ export function startScene() {
     const t = clock.elapsedTime;
     const reduceMotion = state.reduceMotion;
 
-    const delta = (scrollT - smoothT) * (reduceMotion ? 1 : .025);
-    smoothT += THREE.MathUtils.clamp(delta, -MAX_STEP, MAX_STEP);
+    readScroll();
+
+    if (reduceMotion) {
+      smoothT = scrollT;
+    } else {
+      const eased = THREE.MathUtils.damp(smoothT, scrollT, EASE_LAMBDA, dt);
+      const maxStep = MAX_T_PER_SEC * dt;
+      smoothT += THREE.MathUtils.clamp(eased - smoothT, -maxStep, maxStep);
+    }
+    if (!Number.isFinite(smoothT)) smoothT = scrollT || 0;
     let k = THREE.MathUtils.clamp(smoothT, 0, 1);
 
     if (state.mode === 'story') {
@@ -267,10 +283,17 @@ export function startScene() {
       if (!reduceMotion) camera.position.y += Math.sin(t * 1.1) * .18 * (1 - level);
       camera.lookAt(lookSmooth.x, ALT, lookSmooth.z);
 
-      path.getTangentAt(k, tanA);
-      path.getTangentAt(Math.min(1, k + .02), tanB);
-      const turn = THREE.MathUtils.clamp((tanA.x * tanB.z - tanA.z * tanB.x) * 6, -.09, .09) * (1 - level);
+      // getTangentAt can degenerate right at the curve's endpoint (u=1), so
+      // sample slightly inside it, and never let a bad value reach rotation.z -
+      // once bank goes NaN it stays NaN forever since it only ever eases toward itself.
+      const kt = Math.min(k, .998);
+      path.getTangentAt(kt, tanA);
+      path.getTangentAt(Math.min(1, kt + .02), tanB);
+      let turn = (tanA.x * tanB.z - tanA.z * tanB.x) * 6;
+      if (!Number.isFinite(turn)) turn = 0;
+      turn = THREE.MathUtils.clamp(turn, -.09, .09) * (1 - level);
       bank += ((reduceMotion ? 0 : turn) - bank) * .04;
+      if (!Number.isFinite(bank)) bank = 0;
       camera.rotation.z += bank;
     } else {
       controls.updateFreeRoam(dt);
@@ -362,23 +385,7 @@ export function startScene() {
       city.spinners.forEach(s => { s.mesh.rotation[s.axis] += s.speed * .016; });
       ctx.cards.bobbers.forEach(b => { b.grp.position.y = b.baseY + Math.sin(t * 1.2 + b.phase) * b.amp; });
       ctx.cards.swayers.forEach(s => { s.grp.rotation.z = Math.sin(t * .7 + s.phase) * .008; });
-      city.vehicles.forEach(veh => {
-        veh.position.z += veh.userData.dir * veh.userData.speed * dt;
-        if (veh.position.z > Z_MAX) veh.position.z = Z_MIN;
-        if (veh.position.z < Z_MIN) veh.position.z = Z_MAX;
-      });
-      city.people.forEach(p => {
-        p.position.z += p.userData.dir * p.userData.speed * dt;
-        p.position.y = Math.abs(Math.sin(t * 4 + p.userData.phase)) * .12;
-        if (p.position.z > Z_MAX) p.position.z = Z_MIN;
-        if (p.position.z < Z_MIN) p.position.z = Z_MAX;
-      });
-      city.cycles.forEach(c => {
-        c.position.z += c.userData.dir * c.userData.speed * dt;
-        c.position.y = Math.abs(Math.sin(t * 8 + c.userData.phase)) * .05;
-        if (c.position.z > Z_MAX) c.position.z = Z_MIN;
-        if (c.position.z < Z_MIN) c.position.z = Z_MAX;
-      });
+      city.updateTraffic(dt, t);
       city.ambientAir.forEach(a => {
         a.position.z += a.userData.dir * a.userData.speed * dt;
         if (a.position.z > Z_MAX) a.position.z = Z_MIN;
@@ -391,7 +398,6 @@ export function startScene() {
 
   sky.setTimeOfDay(0);
   animate();
-  onScroll();
 
   addEventListener('resize', () => {
     const aspect = innerWidth / innerHeight; camera.aspect = aspect; camera.fov = aspect < 1 ? 100 : 62;

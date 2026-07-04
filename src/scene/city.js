@@ -14,7 +14,12 @@ import {
 export function buildCity(ctx) {
   const { scene, renderer, registerClickable, path, pathSamples, anchors, chapters, metroSamples, Z_MIN, Z_MAX, METRO_CLEARANCE } = ctx;
   const density = state.isMobile ? .45 : 1;
-  const gridStep = state.isMobile ? 32 : 26;
+  // Grid spacing must comfortably exceed the widest possible footprint (a
+  // bank with its stairs/portico reaches ~18-20 units from its center), or
+  // neighbouring buildings can overlap. 34/42 leaves a safe margin.
+  const gridStep = state.isMobile ? 42 : 34;
+  const ROAD_CLEAR = 20;       // generic building-to-road clearance
+  const BIG_ROAD_CLEAR = 28;   // banks/mosques need more room to rotate freely
 
   /* ---- shared palettes & materials ---- */
   const carColors = [0xff8a73, 0xffd166, 0x7bdcb5, 0xa8c8f5, 0xe8b0e0, 0xf7f3ea, 0xff5555, 0x333333, 0xffffff];
@@ -106,20 +111,21 @@ export function buildCity(ctx) {
 
     const dx = nearest.x - x, dz = nearest.z - z;
     const standOff = .7;
+    // Mount on whichever face is closest to the flight path (so the sign sits
+    // flush against a wall), but rotate it to the *continuous* angle toward
+    // that path point rather than snapping to the face's own normal - towers
+    // are never yawed, so on a diagonal stretch of path a snapped sign can
+    // end up facing up to 45 degrees away from the camera.
+    const angle = Math.atan2(dx, dz);
     if (Math.abs(dz) >= Math.abs(dx)) {
-      if (dz >= 0) {
-        frame.position.set(0, yPos, d / 2 + standOff);
-      } else {
-        frame.position.set(0, yPos, -d / 2 - standOff);
-        frame.rotation.y = Math.PI;
-      }
+      if (dz >= 0) frame.position.set(0, yPos, d / 2 + standOff);
+      else frame.position.set(0, yPos, -d / 2 - standOff);
     } else if (dx >= 0) {
       frame.position.set(w / 2 + standOff, yPos, 0);
-      frame.rotation.y = Math.PI / 2;
     } else {
       frame.position.set(-w / 2 - standOff, yPos, 0);
-      frame.rotation.y = -Math.PI / 2;
     }
+    frame.rotation.y = angle;
     registerClickable(frame, { type: 'billboard', data: billboardStories[def.type] || billboardStories.capital });
     towerGroup.add(frame);
   }
@@ -600,8 +606,8 @@ export function buildCity(ctx) {
   for (let gz = 150; gz > -1800; gz -= gridStep) {
     for (let gx = -460; gx < 460; gx += gridStep) {
       const x = gx + (Math.random() - .5) * 10, z = gz + (Math.random() - .5) * 10;
-      if (vRoads.some(rx => Math.abs(x - rx) < 18)) continue;
-      if (hRoads.some(rz => Math.abs(z - rz) < 18)) continue;
+      if (vRoads.some(rx => Math.abs(x - rx) < ROAD_CLEAR)) continue;
+      if (hRoads.some(rz => Math.abs(z - rz) < ROAD_CLEAR)) continue;
       if (wheelSpots.some(([wx, wz]) => { const dx = wx - x, dz = wz - z; return dx * dx + dz * dz < 24 * 24; })) continue;
       if (landmarkSpots.some(s => { const dx = s.x - x, dz = s.z - z; return dx * dx + dz * dz < (s.r + 8) * (s.r + 8); })) continue;
 
@@ -644,11 +650,16 @@ export function buildCity(ctx) {
       }
       if (Math.random() < .03) { makePark(x, z); continue; } // pocket parks between blocks
 
+      // banks/mosques rotate to face the flight path, so their footprint can
+      // point any direction - keep them well clear of every road regardless.
+      const clearOfRoads = !vRoads.some(rx => Math.abs(x - rx) < BIG_ROAD_CLEAR) &&
+        !hRoads.some(rz => Math.abs(z - rz) < BIG_ROAD_CLEAR);
+
       const r = Math.random();
-      if (r < 0.018 && farFrom(civicSpots.mosque, x, z, 180)) {
+      if (r < 0.018 && clearOfRoads && farFrom(civicSpots.mosque, x, z, 180) && farFrom(civicSpots.bank, x, z, 60)) {
         civicSpots.mosque.push({ x, z });
         makeMosque(x, z);
-      } else if (r >= 0.018 && r < 0.06 && farFrom(civicSpots.bank, x, z, 150)) {
+      } else if (r >= 0.018 && r < 0.06 && clearOfRoads && farFrom(civicSpots.bank, x, z, 150) && farFrom(civicSpots.mosque, x, z, 60)) {
         civicSpots.bank.push({ x, z });
         makeGroundBank(x, z);
       } else if (Math.abs(gx) > 320) {
@@ -748,108 +759,186 @@ export function buildCity(ctx) {
     return { curve, trains, trainOffsets, speed: ctx.METRO_SPEED, offset: 0, tmpP: new THREE.Vector3(), tmpT: new THREE.Vector3() };
   })();
 
-  /* ---- ambient vehicles, people, cycles, trees ---- */
-  const vehicles = [];
+  /* ---- ambient vehicles, people, cycles, trees ----
+   * These used to be individual THREE.Group meshes (up to ~1600 of them,
+   * several meshes each) which meant thousands of draw calls just for
+   * background filler. They're now InstancedMesh fields: one draw call per
+   * body part regardless of how many cars/people/cycles/trees exist. Moving
+   * actors keep a small plain-object record (position/speed/phase) and their
+   * instance matrices are rewritten each frame in the update*() functions;
+   * trees never move, so they're written once and never touched again. */
+  const _dummy = new THREE.Object3D();
+  const _actorMat = new THREE.Matrix4();
+  const _partMat = new THREE.Matrix4();
+  const _finalMat = new THREE.Matrix4();
+  const _tmpColor = new THREE.Color();
+  const whiteMat = () => new THREE.MeshLambertMaterial({ color: 0xffffff });
 
-  function makeCar() {
-    const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.1, 5), new THREE.MeshLambertMaterial({ color: carColors[(Math.random() * carColors.length) | 0] }));
-    body.position.y = .9;
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1, 2.6), new THREE.MeshLambertMaterial({ color: 0xcfeaf7 }));
-    cabin.position.set(0, 1.8, -.3);
-    g.add(body, cabin);
-    return g;
+  function composeInstance(mesh, index, x, y, z, rotY, localPos, localRot) {
+    _actorMat.makeRotationY(rotY);
+    _actorMat.setPosition(x, y, z);
+    _dummy.position.set(localPos ? localPos[0] : 0, localPos ? localPos[1] : 0, localPos ? localPos[2] : 0);
+    _dummy.rotation.set(localRot ? localRot[0] : 0, localRot ? localRot[1] : 0, localRot ? localRot[2] : 0);
+    _dummy.updateMatrix();
+    _partMat.copy(_dummy.matrix);
+    _finalMat.multiplyMatrices(_actorMat, _partMat);
+    mesh.setMatrixAt(index, _finalMat);
   }
 
-  function makeBus() {
-    const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(2.8, 2.4, 9), new THREE.MeshLambertMaterial({ color: 0xffb33c }));
-    body.position.y = 1.5;
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.85, .9, 9.05), new THREE.MeshLambertMaterial({ color: 0xcfeaf7 }));
-    stripe.position.y = 2;
-    g.add(body, stripe);
-    return g;
+  function paintPalette(mesh, count, palette) {
+    for (let i = 0; i < count; i++) {
+      _tmpColor.setHex(palette[(Math.random() * palette.length) | 0]);
+      mesh.setColorAt(i, _tmpColor);
+    }
+    mesh.instanceColor.needsUpdate = true;
   }
 
-  const nCars = Math.round(400 * density);
+  function randomRoadZ() { return Z_MAX - Math.random() * (Z_MAX - Z_MIN); }
+
+  /* cars + buses share the road lanes */
+  const nCars = Math.round(300 * density);
+  const nBuses = Math.round(40 * density);
+  const carBodies = new THREE.InstancedMesh(new THREE.BoxGeometry(2.4, 1.1, 5), whiteMat(), Math.max(1, nCars));
+  const carCabins = new THREE.InstancedMesh(new THREE.BoxGeometry(2.1, 1, 2.6), new THREE.MeshLambertMaterial({ color: 0xcfeaf7 }), Math.max(1, nCars));
+  const busBodies = new THREE.InstancedMesh(new THREE.BoxGeometry(2.8, 2.4, 9), new THREE.MeshLambertMaterial({ color: 0xffb33c }), Math.max(1, nBuses));
+  const busStripes = new THREE.InstancedMesh(new THREE.BoxGeometry(2.85, .9, 9.05), new THREE.MeshLambertMaterial({ color: 0xcfeaf7 }), Math.max(1, nBuses));
+  [carBodies, carCabins, busBodies, busStripes].forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(m); });
+  if (nCars) paintPalette(carBodies, nCars, carColors);
+
+  const cars = [];
   for (let i = 0; i < nCars; i++) {
-    const isBus = i % 8 === 0;
-    const g = isBus ? makeBus() : makeCar();
     const road = vRoads[(Math.random() * vRoads.length) | 0];
     const dir = Math.random() < .5 ? 1 : -1;
-    g.position.set(road + (dir > 0 ? 3.4 : -3.4) + (Math.random() - .5) * 2, 0, Z_MAX - Math.random() * (Z_MAX - Z_MIN));
-    g.rotation.y = dir > 0 ? Math.PI : 0;
-    g.userData = { dir, speed: (isBus ? 9 : 13) + Math.random() * 7 };
-    vehicles.push(g);
-    scene.add(g);
+    cars.push({ x: road + (dir > 0 ? 3.4 : -3.4) + (Math.random() - .5) * 2, z: randomRoadZ(), dir, speed: 13 + Math.random() * 7 });
   }
+  const buses = [];
+  for (let i = 0; i < nBuses; i++) {
+    const road = vRoads[(Math.random() * vRoads.length) | 0];
+    const dir = Math.random() < .5 ? 1 : -1;
+    buses.push({ x: road + (dir > 0 ? 3.4 : -3.4) + (Math.random() - .5) * 2, z: randomRoadZ(), dir, speed: 9 + Math.random() * 7 });
+  }
+
+  function updateVehicles(dt) {
+    cars.forEach((v, i) => {
+      v.z += v.dir * v.speed * dt;
+      if (v.z > Z_MAX) v.z = Z_MIN; else if (v.z < Z_MIN) v.z = Z_MAX;
+      const rotY = v.dir > 0 ? Math.PI : 0;
+      composeInstance(carBodies, i, v.x, 0, v.z, rotY, [0, .9, 0]);
+      composeInstance(carCabins, i, v.x, 0, v.z, rotY, [0, 1.8, -.3]);
+    });
+    buses.forEach((v, i) => {
+      v.z += v.dir * v.speed * dt;
+      if (v.z > Z_MAX) v.z = Z_MIN; else if (v.z < Z_MIN) v.z = Z_MAX;
+      const rotY = v.dir > 0 ? Math.PI : 0;
+      composeInstance(busBodies, i, v.x, 0, v.z, rotY, [0, 1.5, 0]);
+      composeInstance(busStripes, i, v.x, 0, v.z, rotY, [0, 2, 0]);
+    });
+    carBodies.instanceMatrix.needsUpdate = true;
+    carCabins.instanceMatrix.needsUpdate = true;
+    busBodies.instanceMatrix.needsUpdate = true;
+    busStripes.instanceMatrix.needsUpdate = true;
+  }
+
+  /* pedestrians */
+  const nPeople = Math.round(170 * density);
+  const peopleBodies = new THREE.InstancedMesh(new THREE.CylinderGeometry(.4, .5, 1.2, 8), whiteMat(), Math.max(1, nPeople));
+  const peopleHeads = new THREE.InstancedMesh(new THREE.SphereGeometry(.42, 10, 10), whiteMat(), Math.max(1, nPeople));
+  [peopleBodies, peopleHeads].forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(m); });
+  if (nPeople) { paintPalette(peopleBodies, nPeople, carColors); paintPalette(peopleHeads, nPeople, skinTones); }
 
   const people = [];
-  function makePerson() {
-    const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(.4, .5, 1.2, 8), new THREE.MeshLambertMaterial({ color: carColors[(Math.random() * carColors.length) | 0] }));
-    body.position.y = .9;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 10), new THREE.MeshLambertMaterial({ color: skinTones[(Math.random() * skinTones.length) | 0] }));
-    head.position.y = 1.9;
-    g.add(body, head);
-    return g;
-  }
-
-  const nPeople = Math.round(250 * density);
   for (let i = 0; i < nPeople; i++) {
-    const g = makePerson();
     const road = vRoads[(Math.random() * vRoads.length) | 0];
     const side = Math.random() < .5 ? -11 + Math.random() * 3 : 11 - Math.random() * 3;
-    g.position.set(road + side, 0, Z_MAX - Math.random() * (Z_MAX - Z_MIN));
-    g.userData = { dir: Math.random() < .5 ? 1 : -1, speed: Math.random() < .25 ? 4.5 : 1.4, phase: Math.random() * 6.28 };
-    people.push(g);
-    scene.add(g);
+    people.push({ x: road + side, z: randomRoadZ(), dir: Math.random() < .5 ? 1 : -1, speed: Math.random() < .25 ? 4.5 : 1.4, phase: Math.random() * 6.28 });
   }
+
+  function updatePeople(dt, t) {
+    people.forEach((p, i) => {
+      p.z += p.dir * p.speed * dt;
+      if (p.z > Z_MAX) p.z = Z_MIN; else if (p.z < Z_MIN) p.z = Z_MAX;
+      const y = Math.abs(Math.sin(t * 4 + p.phase)) * .12;
+      composeInstance(peopleBodies, i, p.x, y, p.z, 0, [0, .9, 0]);
+      composeInstance(peopleHeads, i, p.x, y, p.z, 0, [0, 1.9, 0]);
+    });
+    peopleBodies.instanceMatrix.needsUpdate = true;
+    peopleHeads.instanceMatrix.needsUpdate = true;
+  }
+
+  /* cycles */
+  const nCycles = Math.round(100 * density);
+  const cycleWheelMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+  const cycleWheels = new THREE.InstancedMesh(new THREE.CylinderGeometry(.4, .4, .15, 12), cycleWheelMat, Math.max(2, nCycles * 2));
+  const cycleFrames = new THREE.InstancedMesh(new THREE.BoxGeometry(.2, .2, 1.2), whiteMat(), Math.max(1, nCycles));
+  const cycleRiders = new THREE.InstancedMesh(new THREE.CylinderGeometry(.3, .4, .9, 8), whiteMat(), Math.max(1, nCycles));
+  const cycleHeads = new THREE.InstancedMesh(new THREE.SphereGeometry(.35, 8, 8), whiteMat(), Math.max(1, nCycles));
+  [cycleWheels, cycleFrames, cycleRiders, cycleHeads].forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(m); });
+  if (nCycles) { paintPalette(cycleFrames, nCycles, carColors); paintPalette(cycleRiders, nCycles, carColors); paintPalette(cycleHeads, nCycles, skinTones); }
 
   const cycles = [];
-  function makeCycle() {
-    const g = new THREE.Group();
-    const wheelMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
-    const w1 = new THREE.Mesh(new THREE.CylinderGeometry(.4, .4, .15, 12), wheelMat);
-    w1.rotation.z = Math.PI / 2;
-    w1.position.set(0, .4, -.8);
-    const w2 = w1.clone();
-    w2.position.set(0, .4, .8);
-
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(.2, .2, 1.2), new THREE.MeshLambertMaterial({ color: carColors[(Math.random() * carColors.length) | 0] }));
-    frame.position.set(0, .8, 0);
-
-    const rider = new THREE.Mesh(new THREE.CylinderGeometry(.3, .4, .9, 8), new THREE.MeshLambertMaterial({ color: carColors[(Math.random() * carColors.length) | 0] }));
-    rider.position.set(0, 1.3, 0);
-
-    const head = new THREE.Mesh(new THREE.SphereGeometry(.35, 8, 8), new THREE.MeshLambertMaterial({ color: skinTones[(Math.random() * skinTones.length) | 0] }));
-    head.position.set(0, 2, 0);
-
-    g.add(w1, w2, frame, rider, head);
-    return g;
-  }
-
-  const nCycles = Math.round(150 * density);
   for (let i = 0; i < nCycles; i++) {
-    const g = makeCycle();
     const road = vRoads[(Math.random() * vRoads.length) | 0];
     const side = Math.random() < .5 ? -7.5 : 7.5;
     const dir = Math.random() < .5 ? 1 : -1;
-    g.position.set(road + side, 0, Z_MAX - Math.random() * (Z_MAX - Z_MIN));
-    g.rotation.y = dir > 0 ? Math.PI : 0;
-    g.userData = { dir, speed: 6 + Math.random() * 4, phase: Math.random() * 6.28 };
-    cycles.push(g);
-    scene.add(g);
+    cycles.push({ x: road + side, z: randomRoadZ(), dir, speed: 6 + Math.random() * 4, phase: Math.random() * 6.28 });
   }
 
-  const nTrees = Math.round(800 * density);
+  function updateCycles(dt, t) {
+    cycles.forEach((c, i) => {
+      c.z += c.dir * c.speed * dt;
+      if (c.z > Z_MAX) c.z = Z_MIN; else if (c.z < Z_MIN) c.z = Z_MAX;
+      const y = Math.abs(Math.sin(t * 8 + c.phase)) * .05;
+      const rotY = c.dir > 0 ? Math.PI : 0;
+      composeInstance(cycleWheels, i * 2, c.x, y, c.z, rotY, [0, .4, -.8], [0, 0, Math.PI / 2]);
+      composeInstance(cycleWheels, i * 2 + 1, c.x, y, c.z, rotY, [0, .4, .8], [0, 0, Math.PI / 2]);
+      composeInstance(cycleFrames, i, c.x, y, c.z, rotY, [0, .8, 0]);
+      composeInstance(cycleRiders, i, c.x, y, c.z, rotY, [0, 1.3, 0]);
+      composeInstance(cycleHeads, i, c.x, y, c.z, rotY, [0, 2, 0]);
+    });
+    cycleWheels.instanceMatrix.needsUpdate = true;
+    cycleFrames.instanceMatrix.needsUpdate = true;
+    cycleRiders.instanceMatrix.needsUpdate = true;
+    cycleHeads.instanceMatrix.needsUpdate = true;
+  }
+
+  function updateTraffic(dt, t) {
+    updateVehicles(dt);
+    updatePeople(dt, t);
+    updateCycles(dt, t);
+  }
+
+  /* roadside trees - static, so they're written once and never revisited */
+  const nTrees = Math.round(560 * density);
+  const treeLeafMat = whiteMat();
+  const leafColorPalette = [0x6ca371, 0x7fb87a, 0x5d9367];
+  const treeTrunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(.3, .5, 2.5, 6), trunkMat, Math.max(1, nTrees));
+  const treeLeaves = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1), treeLeafMat, Math.max(1, nTrees));
+  scene.add(treeTrunks, treeLeaves);
   for (let i = 0; i < nTrees; i++) {
-    const g = makeTree();
     const road = vRoads[(Math.random() * vRoads.length) | 0];
     const side = Math.random() < .5 ? -12 : 12;
-    g.position.set(road + side + (Math.random() - .5) * 2, 0, Z_MAX - Math.random() * (Z_MAX - Z_MIN));
-    scene.add(g);
+    const x = road + side + (Math.random() - .5) * 2;
+    const z = randomRoadZ();
+
+    _dummy.position.set(x, 1.25, z);
+    _dummy.rotation.set(0, 0, 0);
+    _dummy.scale.set(1, 1, 1);
+    _dummy.updateMatrix();
+    treeTrunks.setMatrixAt(i, _dummy.matrix);
+
+    const s = 2 + Math.random();
+    _dummy.position.set(x, 3.5, z);
+    _dummy.rotation.set(Math.random(), Math.random(), 0);
+    _dummy.scale.set(s, s, s);
+    _dummy.updateMatrix();
+    treeLeaves.setMatrixAt(i, _dummy.matrix);
+
+    _tmpColor.setHex(leafColorPalette[(Math.random() * leafColorPalette.length) | 0]);
+    treeLeaves.setColorAt(i, _tmpColor);
   }
+  treeTrunks.instanceMatrix.needsUpdate = true;
+  treeLeaves.instanceMatrix.needsUpdate = true;
+  if (nTrees) treeLeaves.instanceColor.needsUpdate = true;
 
   /* ---- signature landmarks ---- */
   const weatherBoards = [];
@@ -1133,7 +1222,9 @@ export function buildCity(ctx) {
   }
 
   // spawn ambient aircraft - models are built nose-along +X, so yaw them onto the Z travel axis
-  const nAir = Math.round(60 * density);
+  // (kept as regular meshes, not instanced: propellers/rotors spin independently
+  // per aircraft, and there are far fewer of these than trees/traffic/pedestrians)
+  const nAir = Math.round(40 * density);
   for (let i = 0; i < nAir; i++) {
     const r = Math.random();
     let mesh, speed;
@@ -1157,7 +1248,7 @@ export function buildCity(ctx) {
   }
 
   ctx.city = {
-    vehicles, people, cycles, ambientAir, ferrisWheels, spinners, metroLoop,
+    ambientAir, ferrisWheels, spinners, metroLoop, updateTraffic,
     weatherBoards, refreshWeatherBoards, refreshBillboards,
     makeAmbientBlimp, makeAmbientHeli, makePediment, bankLogoTexture,
     navyMat, creamMat
