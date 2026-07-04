@@ -85,49 +85,44 @@ export function buildCity(ctx) {
   ground.rotation.x = -Math.PI / 2; ground.position.set(0, -.2, GROUND_CZ);
   scene.add(ground);
 
-  /* ---- billboard attachment on towers ---- */
-  function attachBillboard(towerGroup, x, z, w, h, d) {
-    if (Math.random() > 0.45 || h < 30) return; // only taller buildings get a sign
+  /* ---- rooftop billboards ----
+   * Signs used to hang on a wall face and then rotate toward the flight
+   * path - but rotating a wall-mounted panel about its centre buries one
+   * edge inside the facade on any diagonal stretch. Rooftop hoardings on
+   * posts can yaw freely toward the camera with nothing to clip into.
+   * Returns true when a sign was added so makeTower can skip the penthouse
+   * block (either a sign crowns the roof, or a setback tower does - not both). */
+  function attachBillboard(towerGroup, x, z, w, h, d, top) {
+    if (Math.random() > 0.45 || h < 30) return false; // only taller buildings get a sign
     const def = billboardDefs[Math.random() * billboardDefs.length | 0];
-    const bw = Math.min(w * 0.92, 15);
-    const bh = bw / 2;                 // matches the 2:1 texture, so no squashing
-    if (h < bh + 9) return;
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(bw + 1.4, bh + 1.4, .9), navyMat);
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(bw, bh), new THREE.MeshBasicMaterial({ map: def.tex }));
-    sign.position.z = .55;
-    frame.add(sign);
+    const bw = Math.min(Math.min(w, d), 15);   // posts must land on the roof at any yaw
+    const bh = bw / 2;                          // matches the 2:1 texture, so no squashing
+    if (bw < 8) return false;
 
-    // keep signs high and aim them toward the flight path instead of a random back wall
-    const yMin = Math.max(h * .64, bh / 2 + 7);
-    const yMax = Math.max(yMin, h - bh / 2 - 2.5);
-    const yPos = THREE.MathUtils.lerp(yMin, yMax, .65 + Math.random() * .35);
     let nearest = pathSamples[0], best = Infinity;
     for (const p of pathSamples) {
       const dx = p.x - x, dz = p.z - z;
       const dist = dx * dx + dz * dz;
       if (dist < best) { best = dist; nearest = p; }
     }
-    if (Math.sqrt(best) > 145) return;
+    if (Math.sqrt(best) > 145) return false;
 
-    const dx = nearest.x - x, dz = nearest.z - z;
-    const standOff = .7;
-    // Mount on whichever face is closest to the flight path (so the sign sits
-    // flush against a wall), but rotate it to the *continuous* angle toward
-    // that path point rather than snapping to the face's own normal - towers
-    // are never yawed, so on a diagonal stretch of path a snapped sign can
-    // end up facing up to 45 degrees away from the camera.
-    const angle = Math.atan2(dx, dz);
-    if (Math.abs(dz) >= Math.abs(dx)) {
-      if (dz >= 0) frame.position.set(0, yPos, d / 2 + standOff);
-      else frame.position.set(0, yPos, -d / 2 - standOff);
-    } else if (dx >= 0) {
-      frame.position.set(w / 2 + standOff, yPos, 0);
-    } else {
-      frame.position.set(-w / 2 - standOff, yPos, 0);
-    }
-    frame.rotation.y = angle;
-    registerClickable(frame, { type: 'billboard', data: billboardStories[def.type] || billboardStories.capital });
-    towerGroup.add(frame);
+    const group = new THREE.Group();
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(bw + 1.4, bh + 1.4, .9), navyMat);
+    frame.position.y = 3.1 + bh / 2;
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(bw, bh), new THREE.MeshBasicMaterial({ map: def.tex }));
+    sign.position.set(0, 3.1 + bh / 2, .55);
+    [-1, 1].forEach(s => {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(.5, 3.6, .5), navyMat);
+      post.position.set(s * (bw / 2 - .9), 1.8, 0);
+      group.add(post);
+    });
+    group.add(frame, sign);
+    group.position.y = top;
+    group.rotation.y = Math.atan2(nearest.x - x, nearest.z - z);
+    registerClickable(group, { type: 'billboard', data: billboardStories[def.type] || billboardStories.capital });
+    towerGroup.add(group);
+    return true;
   }
 
   function makeTower(x, z, w, h, d) {
@@ -151,15 +146,16 @@ export function buildCity(ctx) {
     }
 
     let top = block(w, h, d, 0);
-    if (Math.random() < .45) top = block(w * .62, h * .28, d * .62, top);
-    if (Math.random() < .3) {
+    // a roof carries either a billboard or a penthouse/AC clutter, never both
+    const signed = attachBillboard(g, x, z, w, h, d, top);
+    if (!signed && Math.random() < .45) top = block(w * .62, h * .28, d * .62, top);
+    if (!signed && Math.random() < .3) {
       for (let i = 0; i < 2; i++) {
         const ac = new THREE.Mesh(new THREE.BoxGeometry(2, 1.4, 2), new THREE.MeshLambertMaterial({ color: 0xb8bfd6 }));
         ac.position.set((Math.random() - .5) * w * .5, top + .7, (Math.random() - .5) * d * .5);
         g.add(ac);
       }
     }
-    attachBillboard(g, x, z, w, h, d);
     g.position.set(x, 0, z);
     scene.add(g);
   }
@@ -763,12 +759,15 @@ export function buildCity(ctx) {
     });
 
     // pylons: frequent enough that the beam never floats, skipped over roads
+    // AND over the flight corridor - the line crosses above the camera's
+    // path, and a column standing in the camera's lane would end the tour
     const N_PYLONS = 90;
     const overRoad = (x, z) => vRoads.some(rx => Math.abs(x - rx) < 13) || hRoads.some(rz => Math.abs(z - rz) < 13);
     const pylonSpots = [];
     for (let i = 0; i < N_PYLONS; i++) {
       curve.getPointAt(i / N_PYLONS, tmpP);
       if (overRoad(tmpP.x, tmpP.z)) continue;
+      if (nearestDist(pathSamples, tmpP.x, tmpP.z) < 16) continue;
       curve.getTangentAt(i / N_PYLONS, tmpT).normalize();
       pylonSpots.push({ x: tmpP.x, z: tmpP.z, yaw: Math.atan2(tmpT.x, tmpT.z) });
     }
@@ -833,15 +832,18 @@ export function buildCity(ctx) {
       }
       return car;
     }
+    // Articulated trains: each car is an independent object that samples the
+    // curve at its own arc-length offset in the animate loop. The old rigid
+    // 3-car group extended straight back along the lead car's tangent, which
+    // visibly hung the trailing cars off the deck on tight turns.
     function makeTrain() {
-      const train = new THREE.Group();
+      const cars = [];
       for (let i = 0; i < 3; i++) {
         const car = makeCar(i === 0);
-        car.position.z = -i * 13.2;
-        train.add(car);
+        g.add(car);
+        cars.push(car);
       }
-      g.add(train);
-      trains.push(train);
+      trains.push(cars);
     }
     const trainOffsets = state.isMobile
       ? [.05, .2, .35, .5, .65, .8]
@@ -849,7 +851,11 @@ export function buildCity(ctx) {
     trainOffsets.forEach(() => makeTrain());
     scene.add(g);
 
-    return { curve, trains, trainOffsets, speed: ctx.METRO_SPEED, offset: 0, tmpP: new THREE.Vector3(), tmpT: new THREE.Vector3() };
+    return {
+      curve, trains, trainOffsets, speed: ctx.METRO_SPEED, offset: 0,
+      carSpacingU: 13.4 / curve.getLength(),   // one car + coupling gap, in curve-u
+      tmpP: new THREE.Vector3(), tmpT: new THREE.Vector3()
+    };
   })();
 
   /* ---- ambient vehicles, people, cycles, trees ----

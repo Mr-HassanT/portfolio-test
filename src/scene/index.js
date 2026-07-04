@@ -87,12 +87,23 @@ export function startScene() {
     const pts = [];
     for (let i = 0; i <= steps; i++) {
       const u = i / steps;
-      pts.push(metroPointAt(THREE.MathUtils.lerp(from, to, u), offset));
+      const tt = THREE.MathUtils.lerp(from, to, u);
+      const off = typeof offset === 'function' ? offset(tt) : offset;
+      pts.push(metroPointAt(tt, off));
     }
     return pts;
   }
+  // The front run starts on the east side, then swings across the flight
+  // path between stops 3 (.64) and 4 (.82) and finishes on the west side -
+  // the story camera (y=30) flies straight under the deck (y=58) at ~t=.73,
+  // FPV-drone style. Pylons near the corridor are skipped in city.js, so
+  // the crossing is a clear-span bridge over the camera's lane.
+  const frontOffsetAt = t => {
+    const s = THREE.MathUtils.smoothstep(t, .66, .80);
+    return THREE.MathUtils.lerp(METRO_FRONT_OFFSET, -METRO_FRONT_OFFSET, s);
+  };
   const metroCurve = new THREE.CatmullRomCurve3([
-    ...metroOffsetRun(METRO_FRONT_OFFSET, .015, .985, 34),
+    ...metroOffsetRun(frontOffsetAt, .015, .985, 72),
     ...metroOffsetRun(METRO_RETURN_OFFSET, .985, .015, 34),
   ], true, 'centripetal');
   const metroSamples = metroCurve.getPoints(720);
@@ -389,13 +400,18 @@ export function startScene() {
       const metroLoop = city.metroLoop;
       if (metroLoop) {
         metroLoop.offset = (metroLoop.offset + metroLoop.speed * dt) % 1;
-        metroLoop.trains.forEach((train, i) => {
-          const u = (metroLoop.offset + metroLoop.trainOffsets[i]) % 1;
-          metroLoop.curve.getPointAt(u, metroLoop.tmpP);
-          metroLoop.curve.getTangentAt(u, metroLoop.tmpT).normalize();
-          train.position.copy(metroLoop.tmpP);
-          train.rotation.y = Math.atan2(metroLoop.tmpT.x, metroLoop.tmpT.z);
-          train.position.y -= .15 + Math.sin(t * 3 + i) * .05;
+        // each car samples the curve at its own arc offset, so trains bend
+        // through corners instead of hanging trailing cars off the deck
+        metroLoop.trains.forEach((cars, i) => {
+          const u0 = (metroLoop.offset + metroLoop.trainOffsets[i]) % 1;
+          cars.forEach((car, ci) => {
+            const u = (u0 - ci * metroLoop.carSpacingU + 1) % 1;
+            metroLoop.curve.getPointAt(u, metroLoop.tmpP);
+            metroLoop.curve.getTangentAt(u, metroLoop.tmpT).normalize();
+            car.position.copy(metroLoop.tmpP);
+            car.position.y -= .15 + Math.sin(t * 3 + i) * .05;
+            car.rotation.y = Math.atan2(metroLoop.tmpT.x, metroLoop.tmpT.z);
+          });
         });
       }
       city.spinners.forEach(s => { s.mesh.rotation[s.axis] += s.speed * .016; });
