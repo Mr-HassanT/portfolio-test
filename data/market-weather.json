@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-06T20:20:30.598Z",
+  "updatedAt": "2026-07-06T21:52:45.242Z",
   "source": {
     "market": "Yahoo Finance chart API"
   },
@@ -40,22 +40,22 @@
       },
       {
         "symbol": "VOO",
-        "price": 690.58,
+        "price": 690.62,
         "previousClose": 670.26,
-        "changePct": 3.031659356070786,
+        "changePct": 3.0376271894488727,
         "currency": "USD",
         "marketTime": "2026-07-06T20:00:00.000Z",
         "weight": 0.2
       }
     ],
-    "compositeChangePct": 2.7897555822716735,
+    "compositeChangePct": 2.790949148947291,
     "mood": "risk-on",
     "spark": [
       100,
       101.116,
       100.472,
       99.787,
-      100.844
+      100.846
     ],
     "source": "Yahoo Finance chart API"
   }
