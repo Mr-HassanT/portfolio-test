@@ -1,7 +1,7 @@
 /* In-flight HUD: pills, hint, progress bar, toast, and the bottom ticker. */
 
 #hud{
-  position:fixed;left:0;right:0;bottom:calc(34px + 1.6vh);z-index:6;pointer-events:none;
+  position:fixed;left:0;right:0;bottom:calc(34px + env(safe-area-inset-bottom,0px) + 1.6vh);z-index:6;pointer-events:none;
   display:flex;align-items:flex-end;justify-content:center;gap:1rem;padding:0 4vw;
   opacity:0;transition:opacity 1s ease .5s;
 }
@@ -19,7 +19,7 @@
 .pill-btn:hover{transform:translateY(-2px)}
 
 #weatherToast{
-  position:fixed;left:50%;top:calc(4.5vh + 58px);transform:translateX(-50%) translateY(-8px);z-index:7;pointer-events:none;
+  position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 92px);transform:translateX(-50%) translateY(-8px);z-index:7;pointer-events:none;
   max-width:min(620px,92vw);text-align:center;
   font-family:'Fredoka',sans-serif;font-weight:600;font-size:.82rem;letter-spacing:.03em;
   color:var(--navy);background:var(--cream);border:3px solid var(--navy);border-radius:18px;padding:.7rem 1.3rem;
@@ -29,7 +29,7 @@
 #weatherToast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 #hint{
-  position:fixed;left:50%;top:4.5vh;transform:translateX(-50%);z-index:6;pointer-events:none;white-space:nowrap;
+  position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 4.5vh);transform:translateX(-50%);z-index:6;pointer-events:none;white-space:nowrap;
   font-family:'Fredoka',sans-serif;font-weight:600;font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;
   color:var(--navy);background:var(--cream);border:3px solid var(--navy);border-radius:999px;padding:.5rem 1.4rem;
   box-shadow:0 5px 0 rgba(35,49,95,.18);opacity:0;transition:opacity 1s ease .7s;
@@ -42,7 +42,7 @@ body.config-open #hint,body.config-open #hint.on{opacity:0}
   background:linear-gradient(90deg,var(--coral),var(--sun),var(--mint))}
 
 #ticker{
-  position:fixed;left:0;right:0;bottom:0;height:34px;z-index:7;overflow:hidden;
+  position:fixed;left:0;right:0;bottom:0;height:calc(34px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);z-index:7;overflow:hidden;
   background:var(--navy);border-top:3px solid var(--cream);
   display:flex;align-items:center;opacity:0;transition:opacity 1s ease .6s;
 }
