@@ -94,32 +94,39 @@ export function startScene() {
     return pts;
   }
   // The front run starts on the east side, then swings across the flight
-  // path between stops 3 (.64) and 4 (.82) and finishes on the west side -
-  // the story camera (y=30) flies straight under the deck (y=58) at ~t=.73,
-  // FPV-drone style. Pylons near the corridor are skipped in city.js, so
-  // the crossing is a clear-span bridge over the camera's lane.
+  // path and finishes on the west side - the story camera (y=30) flies
+  // straight under the deck (y=58) FPV-drone style. The swap window MUST
+  // sit on a straight stretch of the path (x=55 between t~.60 and t~.72):
+  // it used to run .66-.80, overlapping the westward jog after stop 3, and
+  // lateral swing + path curvature combined into a self-crossing hairpin
+  // that trains visibly kinked through. Pylons near the corridor are
+  // skipped in city.js, so the crossing is a clear-span bridge.
   const frontOffsetAt = t => {
-    const s = THREE.MathUtils.smoothstep(t, .66, .80);
+    const s = THREE.MathUtils.smoothstep(t, .615, .715);
     return THREE.MathUtils.lerp(METRO_FRONT_OFFSET, -METRO_FRONT_OFFSET, s);
   };
-  // Explicit turnaround control points: without them the closed catmull
-  // spline bridges the two runs with whatever bulge it likes - after the
-  // west-side crossing the end gap is ~240 units, and the auto-bulge looped
-  // straight over the after-hours district (pylon through the cricket
-  // pitch). Both U-turns now sweep deliberately beyond the tour area.
+  // U-turns at both ends of the loop. Sparse hand-placed control points
+  // gave the centripetal catmull pointy triangular corners, so the arcs
+  // are generated instead: a half-oval of 7 points from one run's endpoint
+  // to the other's, bulging past the tour area. bulgeZ sets direction and
+  // depth (negative = south, beyond the landing pad).
+  const turnArc = (a, b, bulgeZ, n = 7) => {
+    const cx = (a.x + b.x) / 2, cz = (a.z + b.z) / 2;
+    const rx = Math.abs(b.x - a.x) / 2, dirX = Math.sign(b.x - a.x);
+    const pts = [];
+    for (let i = 1; i <= n; i++) {
+      const th = Math.PI * i / (n + 1);
+      pts.push(new THREE.Vector3(cx - dirX * Math.cos(th) * rx, METRO_RAIL_Y, cz + Math.sin(th) * bulgeZ));
+    }
+    return pts;
+  };
   const metroCurve = new THREE.CatmullRomCurve3([
-    ...metroOffsetRun(frontOffsetAt, .015, .985, 72),
+    ...metroOffsetRun(frontOffsetAt, .015, .985, 96),
     // far turnaround: wide sweep behind the landing pad, past the city edge
-    new THREE.Vector3(-70, METRO_RAIL_Y, -1615),
-    new THREE.Vector3(-20, METRO_RAIL_Y, -1655),
-    new THREE.Vector3(70, METRO_RAIL_Y, -1665),
-    new THREE.Vector3(140, METRO_RAIL_Y, -1630),
-    new THREE.Vector3(168, METRO_RAIL_Y, -1585),
+    ...turnArc(metroPointAt(.985, frontOffsetAt(.985)), metroPointAt(.985, METRO_RETURN_OFFSET), -130),
     ...metroOffsetRun(METRO_RETURN_OFFSET, .985, .015, 34),
-    // near turnaround: small loop north of the take-off point
-    new THREE.Vector3(160, METRO_RAIL_Y, 150),
-    new THREE.Vector3(120, METRO_RAIL_Y, 172),
-    new THREE.Vector3(80, METRO_RAIL_Y, 150),
+    // near turnaround: gentle loop north of the take-off point
+    ...turnArc(metroPointAt(.015, METRO_RETURN_OFFSET), metroPointAt(.015, frontOffsetAt(.015)), 55),
   ], true, 'centripetal');
   const metroSamples = metroCurve.getPoints(720);
 

@@ -29,7 +29,10 @@ body.no-3d #spacer{height:auto}
   font-size:clamp(2.4rem,8vw,5.5rem);line-height:1.04;
   text-shadow:0 6px 0 rgba(35,49,95,.12);
 }
-#ignition p{margin-top:1.2rem;color:var(--ink-soft);font-weight:600;max-width:46ch;font-size:1.08rem;padding:0 6vw}
+/* max-width and the horizontal padding must never be combined here: with
+   border-box sizing, `padding:0 6vw` inside a 46ch box left a ~20-character
+   column on wide desktop screens. The viewport clamp lives in max-width. */
+#ignition p{margin-top:1.2rem;color:var(--ink-soft);font-weight:600;max-width:min(52ch,88vw);font-size:1.08rem;line-height:1.6}
 #startBtn{
   margin-top:2.6rem;padding:1.1rem 3.4rem;cursor:pointer;border:none;border-radius:999px;
   font-family:'Fredoka',sans-serif;font-weight:700;letter-spacing:.08em;font-size:1.05rem;

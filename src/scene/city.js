@@ -59,18 +59,20 @@ export function buildCity(ctx) {
     { base: '#e8b0e0', dark: '#b582ad', roof: 0xa55f9c },
     { base: '#f7f3ea', dark: '#c4bfb2', roof: 0xc96f5e },
   ];
-  const facades = palette.map(p => {
-    const pair = facadeCanvasPair(p.base, p.dark);
-    return { ...pair, roofMat: new THREE.MeshLambertMaterial({ color: p.roof }) };
-  });
-  function facadeCanvasPair(base, dark) {
+  // every palette in both window styles - 12 looks instead of 6
+  const facades = [];
+  palette.forEach(p => ['grid', 'ribbon'].forEach(style => {
+    const pair = facadeCanvasPair(p.base, p.dark, style);
+    facades.push({ ...pair, roofMat: new THREE.MeshLambertMaterial({ color: p.roof }) });
+  }));
+  function facadeCanvasPair(base, dark, style) {
     const mk = c => {
       const t = new THREE.CanvasTexture(c);
       t.magFilter = THREE.NearestFilter;
       t.wrapS = t.wrapT = THREE.RepeatWrapping;
       return t;
     };
-    const { day, nite } = facadeCanvases(base, dark);
+    const { day, nite } = facadeCanvases(base, dark, style);
     return { day: mk(day), nite: mk(nite) };
   }
 
@@ -92,9 +94,10 @@ export function buildCity(ctx) {
    * posts can yaw freely toward the camera with nothing to clip into.
    * Returns true when a sign was added so makeTower can skip the penthouse
    * block (either a sign crowns the roof, or a setback tower does - not both). */
+  const placedSigns = [];
+  const SAME_SIGN_GAP = 170;   // the same artwork never repeats within this radius
   function attachBillboard(towerGroup, x, z, w, h, d, top) {
     if (Math.random() > 0.45 || h < 30) return false; // only taller buildings get a sign
-    const def = billboardDefs[Math.random() * billboardDefs.length | 0];
     const bw = Math.min(Math.min(w, d), 15);   // posts must land on the roof at any yaw
     const bh = bw / 2;                          // matches the 2:1 texture, so no squashing
     if (bw < 8) return false;
@@ -106,6 +109,13 @@ export function buildCity(ctx) {
       if (dist < best) { best = dist; nearest = p; }
     }
     if (Math.sqrt(best) > 145) return false;
+
+    // pick artwork that isn't already hanging nearby - three identical
+    // boards on one block reads like a rendering bug, not a city
+    const pool = billboardDefs.filter(b =>
+      !placedSigns.some(s => s.type === b.type && (s.x - x) ** 2 + (s.z - z) ** 2 < SAME_SIGN_GAP * SAME_SIGN_GAP));
+    const src = pool.length ? pool : billboardDefs;
+    const def = src[(Math.random() * src.length) | 0];
 
     const group = new THREE.Group();
     const frame = new THREE.Mesh(new THREE.BoxGeometry(bw + 1.4, bh + 1.4, .9), navyMat);
@@ -122,39 +132,107 @@ export function buildCity(ctx) {
     group.rotation.y = Math.atan2(nearest.x - x, nearest.z - z);
     registerClickable(group, { type: 'billboard', data: billboardStories[def.type] || billboardStories.capital });
     towerGroup.add(group);
+    placedSigns.push({ type: def.type, x, z });
     return true;
+  }
+
+  /* ---- street entrances ----
+   * Every tower and house gets a front door facing its nearest road. The
+   * specs are collected during the grid pass and rendered afterwards as
+   * three InstancedMeshes (trim, panel, awning) - whole-city doors for
+   * three draw calls instead of thousands. */
+  const doorSpecs = [];
+  const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff5555 });
+  function nearestRoadFace(x, z) {
+    let bx = vRoads[0]; for (const r of vRoads) if (Math.abs(x - r) < Math.abs(x - bx)) bx = r;
+    let bz = hRoads[0]; for (const r of hRoads) if (Math.abs(z - r) < Math.abs(z - bz)) bz = r;
+    if (Math.abs(x - bx) <= Math.abs(z - bz)) return { dx: bx > x ? 1 : -1, dz: 0 };
+    return { dx: 0, dz: bz > z ? 1 : -1 };
+  }
+  function pushDoorSpec(x, z, dx, dz, halfDepth, opts = {}) {
+    doorSpecs.push({
+      x: x + dx * halfDepth, z: z + dz * halfDepth,
+      yaw: Math.atan2(dx, dz),
+      s: opts.s || 1,                 // door size scale (houses get smaller doors)
+      awning: opts.awning !== false
+    });
   }
 
   function makeTower(x, z, w, h, d) {
     const g = new THREE.Group();
     const f = facades[(Math.random() * facades.length) | 0];
+    const face = nearestRoadFace(x, z);
 
-    function block(bw, bh, bd, y) {
+    function towerMat(repX, repY) {
       const map = f.day.clone(), em = f.nite.clone();
       map.needsUpdate = em.needsUpdate = true;
-      map.repeat.set(Math.max(1, bw / 9), Math.max(1, bh / 18));
+      map.repeat.set(repX, repY);
       em.repeat.copy(map.repeat);
       const m = new THREE.MeshLambertMaterial({ map, emissive: 0xffffff, emissiveMap: em, emissiveIntensity: 0 });
       buildingMats.push(m);
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), m);
-      mesh.position.y = y + bh / 2;
-      g.add(mesh);
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(bw + 1.4, 1.6, bd + 1.4), f.roofMat);
-      roof.position.y = y + bh + .8;
-      g.add(roof);
-      return y + bh + 1.6;
+      return m;
     }
 
-    let top = block(w, h, d, 0);
-    // a roof carries either a billboard or a penthouse/AC clutter, never both
-    const signed = attachBillboard(g, x, z, w, h, d, top);
-    if (!signed && Math.random() < .45) top = block(w * .62, h * .28, d * .62, top);
-    if (!signed && Math.random() < .3) {
-      for (let i = 0; i < 2; i++) {
-        const ac = new THREE.Mesh(new THREE.BoxGeometry(2, 1.4, 2), new THREE.MeshLambertMaterial({ color: 0xb8bfd6 }));
-        ac.position.set((Math.random() - .5) * w * .5, top + .7, (Math.random() - .5) * d * .5);
-        g.add(ac);
+    if (Math.random() < .16) {
+      /* cylindrical tower - the window texture wraps a whole number of
+       * times around the drum so the seam lands on a window edge */
+      const r = Math.max(4, Math.min(w, d) / 2);
+      const drum = (br, bh, y) => {
+        const mesh = new THREE.Mesh(
+          new THREE.CylinderGeometry(br, br, bh, 14),
+          towerMat(Math.max(2, Math.round((2 * Math.PI * br) / 9)), Math.max(1, bh / 18))
+        );
+        mesh.position.y = y + bh / 2;
+        g.add(mesh);
+        const lid = new THREE.Mesh(new THREE.CylinderGeometry(br + .7, br + .7, 1.6, 14), f.roofMat);
+        lid.position.y = y + bh + .8;
+        g.add(lid);
+        return y + bh + 1.6;
+      };
+      let top = drum(r, h, 0);
+      if (Math.random() < .5) top = drum(r * .62, h * .26, top);
+      if (Math.random() < .4) {
+        const dome = new THREE.Mesh(new THREE.SphereGeometry(r * .5, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), f.roofMat);
+        dome.position.y = top - .8;
+        g.add(dome);
       }
+      pushDoorSpec(x, z, face.dx, face.dz, r - .12);
+    } else {
+      function block(bw, bh, bd, y) {
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), towerMat(Math.max(1, bw / 9), Math.max(1, bh / 18)));
+        mesh.position.y = y + bh / 2;
+        g.add(mesh);
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(bw + 1.4, 1.6, bd + 1.4), f.roofMat);
+        roof.position.y = y + bh + .8;
+        g.add(roof);
+        return y + bh + 1.6;
+      }
+
+      let top = block(w, h, d, 0);
+      // a roof carries either a billboard or a penthouse/AC clutter, never both
+      const signed = attachBillboard(g, x, z, w, h, d, top);
+      if (!signed && Math.random() < .45) {
+        top = block(w * .62, h * .28, d * .62, top);
+        // tall towers sometimes stack a third tier - wedding-cake skyline
+        if (h > 40 && Math.random() < .4) top = block(w * .4, h * .16, d * .4, top);
+      }
+      if (!signed && Math.random() < .3) {
+        for (let i = 0; i < 2; i++) {
+          const ac = new THREE.Mesh(new THREE.BoxGeometry(2, 1.4, 2), new THREE.MeshLambertMaterial({ color: 0xb8bfd6 }));
+          ac.position.set((Math.random() - .5) * w * .5, top + .7, (Math.random() - .5) * d * .5);
+          g.add(ac);
+        }
+      }
+      // rooftop mast with a red beacon on the tall ones
+      if (!signed && h > 46 && Math.random() < .5) {
+        const mastH = 5 + Math.random() * 6;
+        const mast = new THREE.Mesh(new THREE.CylinderGeometry(.16, .3, mastH, 6), navyMat);
+        mast.position.y = top + mastH / 2;
+        const beacon = new THREE.Mesh(new THREE.SphereGeometry(.34, 6, 6), beaconMat);
+        beacon.position.y = top + mastH + .3;
+        g.add(mast, beacon);
+      }
+      pushDoorSpec(x, z, face.dx, face.dz, (face.dx !== 0 ? w : d) / 2);
     }
     g.position.set(x, 0, z);
     scene.add(g);
@@ -347,7 +425,12 @@ export function buildCity(ctx) {
     chimney.position.set(w * .28, h + roofH * .55, -d * .18);
     g.add(base, roof, chimney);
     g.position.set(x, 0, z);
-    g.rotation.y = ((Math.random() * 4) | 0) * Math.PI / 2;
+    // face the street like a house should, and dress that face with a real
+    // porch door (the wall texture paints one on every side; the 3D door
+    // marks which side is the front)
+    const face = nearestRoadFace(x, z);
+    g.rotation.y = Math.atan2(face.dx, face.dz);
+    pushDoorSpec(x, z, face.dx, face.dz, d / 2, { s: .68 });
     scene.add(g);
   }
 
@@ -413,11 +496,16 @@ export function buildCity(ctx) {
     return g;
   }
 
+  // where pedestrians are allowed to wander: park centers plus how far the
+  // built feature reaches, so strollers orbit on the grass around it
+  const parkSpots = [];
   function makePark(x, z) {
     const g = new THREE.Group();
     const r = Math.random();
+    let clearR = 5;                                // feature footprint radius
     if (r < .13) {                                 // duck pond
       const pr = 4 + Math.random() * 3;
+      clearR = pr + 1.5;
       const pond = new THREE.Mesh(new THREE.CylinderGeometry(pr, pr, .4, 14), pondMat);
       pond.position.y = .2;
       const rim = new THREE.Mesh(new THREE.TorusGeometry(pr, .35, 6, 16), creamMat);
@@ -481,7 +569,9 @@ export function buildCity(ctx) {
       g.add(roof, tip);
     } else if (r < .64) {                          // padel cage - weekends are for racquets
       g.add(makePadelCage(7, 14, 2.4));
+      clearR = 8.5;
     } else if (r < .74) {                          // candlestick hedge garden
+      clearR = 8;
       const strip = new THREE.Mesh(new THREE.BoxGeometry(14.5, .3, 4), soilMat);
       strip.position.y = .15;
       g.add(strip);
@@ -510,6 +600,7 @@ export function buildCity(ctx) {
       glow.position.set(-1, 3.6, 1.8);
       g.add(seat, back, pole, glow);
     } else {                                       // tree cluster + wildflowers
+      clearR = 7;
       const n = 1 + (Math.random() * 3 | 0);
       for (let i = 0; i < n; i++) { const tr = makeTree(); tr.position.set((Math.random() - .5) * 11, 0, (Math.random() - .5) * 11); g.add(tr); }
       for (let i = 0; i < 4; i++) {
@@ -519,6 +610,7 @@ export function buildCity(ctx) {
     }
     g.rotation.y = Math.random() * Math.PI * 2;
     g.position.set(x, 0, z);
+    parkSpots.push({ x, z, clearR });
     scene.add(g);
   }
 
@@ -707,6 +799,46 @@ export function buildCity(ctx) {
     }
   }
 
+  /* ---- render the collected street doors ----
+   * Static, so matrices are written once. Three instanced meshes cover
+   * every entrance in the city: cream trim, coloured panel, striped-awning
+   * canopy. frustumCulled stays off for the same r128 reason as the
+   * traffic fields below. */
+  (() => {
+    const n = Math.max(1, doorSpecs.length);
+    const trims = new THREE.InstancedMesh(new THREE.BoxGeometry(3.4, 4.2, .5), new THREE.MeshLambertMaterial({ color: 0xf1eadc }), n);
+    const panels = new THREE.InstancedMesh(new THREE.BoxGeometry(2.3, 3.5, .6), new THREE.MeshLambertMaterial({ color: 0xffffff }), n);
+    const awnings = new THREE.InstancedMesh(new THREE.BoxGeometry(4.4, .4, 2.0), new THREE.MeshLambertMaterial({ color: 0xffffff }), n);
+    const dummy = new THREE.Object3D();
+    const col = new THREE.Color();
+    const panelCols = [0x23315f, 0x8a5a36, 0x5a4a30, 0xc96f5e, 0x3f9181, 0x5f7fc0];
+    const awningCols = [0xff8a73, 0xffd166, 0x7bdcb5, 0x5f7fc0, 0xe2674f, 0xa55f9c];
+    doorSpecs.forEach((sp, i) => {
+      const ox = Math.sin(sp.yaw), oz = Math.cos(sp.yaw);
+      const place = (mesh, off, y, sx, sy) => {
+        dummy.position.set(sp.x + ox * off, y, sp.z + oz * off);
+        dummy.rotation.set(0, sp.yaw, 0);
+        dummy.scale.set(sx, sy, 1);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+      };
+      place(trims, .1, 2.1 * sp.s, sp.s, sp.s);
+      place(panels, .18, 1.75 * sp.s, sp.s, sp.s);
+      if (sp.awning === false) place(awnings, 0, -5, .001, .001); // parked underground
+      else place(awnings, 1.0, 4.35 * sp.s, sp.s, 1);
+      col.setHex(panelCols[(Math.random() * panelCols.length) | 0]);
+      panels.setColorAt(i, col);
+      col.setHex(awningCols[(Math.random() * awningCols.length) | 0]);
+      awnings.setColorAt(i, col);
+    });
+    [trims, panels, awnings].forEach(m => {
+      m.instanceMatrix.needsUpdate = true;
+      if (m.instanceColor) m.instanceColor.needsUpdate = true;
+      m.frustumCulled = false;
+      scene.add(m);
+    });
+  })();
+
   /* ---- elevated metro loop ----
    * A solid monorail-style guideway instead of the old floating tubes and
    * sparse sleepers: overlapping instanced deck segments hug the curve with
@@ -726,8 +858,9 @@ export function buildCity(ctx) {
     const dummy = new THREE.Object3D();
 
     // deck + skirt: instanced box segments, slightly overlapped so the
-    // chain of chords reads as one continuous beam
-    const DECK_SEGS = 240;
+    // chain of chords reads as one continuous beam. 320 keeps the chords
+    // short enough that even the tight near-turnaround reads as a curve.
+    const DECK_SEGS = 320;
     const deck = new THREE.InstancedMesh(new THREE.BoxGeometry(6.8, 1.3, 1), concreteMat, DECK_SEGS);
     const skirt = new THREE.InstancedMesh(new THREE.BoxGeometry(3.4, 1.5, 1), accentMat, DECK_SEGS);
     const pA = new THREE.Vector3(), pB = new THREE.Vector3();
@@ -888,11 +1021,15 @@ export function buildCity(ctx) {
     scene.add(mesh);
   };
 
-  function composeInstance(mesh, index, x, y, z, rotY, localPos, localRot) {
+  function composeInstance(mesh, index, x, y, z, rotY, localPos, localRot, localScale) {
     _actorMat.makeRotationY(rotY);
     _actorMat.setPosition(x, y, z);
     _dummy.position.set(localPos ? localPos[0] : 0, localPos ? localPos[1] : 0, localPos ? localPos[2] : 0);
     _dummy.rotation.set(localRot ? localRot[0] : 0, localRot ? localRot[1] : 0, localRot ? localRot[2] : 0);
+    // the scale must be reset every call: _dummy is shared with the tree
+    // planter, which used to leave a stale 2-3x leaf scale on it - every
+    // moving actor rendered oversized from the second frame onward
+    _dummy.scale.set(localScale ? localScale[0] : 1, localScale ? localScale[1] : 1, localScale ? localScale[2] : 1);
     _dummy.updateMatrix();
     _partMat.copy(_dummy.matrix);
     _finalMat.multiplyMatrices(_actorMat, _partMat);
@@ -927,39 +1064,65 @@ export function buildCity(ctx) {
       const rec = {
         x: lane.x + (Math.random() - .5) * .8,
         z: Z_MIN + (i + .5) * gap + (Math.random() - .5) * gap * .3,
-        dir: lane.dir, speed: lane.speed
+        dir: lane.dir, speed: lane.speed,
+        stretch: .85 + Math.random() * .3,   // body length: sedan .. estate
+        cab: .72 + Math.random() * .48       // cabin length: coupe .. wagon
       };
       // same-speed lane means the slot gaps never close, so a bus in every
       // seventh slot stays exactly as far from its neighbours as a car would
       if ((i + li) % 7 === 0) buses.push(rec); else cars.push(rec);
     }
   });
+  const nVeh = cars.length + buses.length;
   const carBodies = new THREE.InstancedMesh(new THREE.BoxGeometry(2.4, 1.1, 5), whiteMat(), Math.max(1, cars.length));
   const carCabins = new THREE.InstancedMesh(new THREE.BoxGeometry(2.1, 1, 2.6), new THREE.MeshLambertMaterial({ color: 0xcfeaf7 }), Math.max(1, cars.length));
   const busBodies = new THREE.InstancedMesh(new THREE.BoxGeometry(2.8, 2.4, 9), new THREE.MeshLambertMaterial({ color: 0xffb33c }), Math.max(1, buses.length));
   const busStripes = new THREE.InstancedMesh(new THREE.BoxGeometry(2.85, .9, 9.05), new THREE.MeshLambertMaterial({ color: 0xcfeaf7 }), Math.max(1, buses.length));
-  [carBodies, carCabins, busBodies, busStripes].forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); addInstanced(m); });
+  // shared detail fields: wheels + lights for every vehicle, windshields for buses
+  const vehWheels = new THREE.InstancedMesh(new THREE.CylinderGeometry(.42, .42, .4, 10), new THREE.MeshLambertMaterial({ color: 0x22232e }), Math.max(1, nVeh * 4));
+  const vehHeads = new THREE.InstancedMesh(new THREE.BoxGeometry(.5, .3, .16), new THREE.MeshBasicMaterial({ color: 0xfff6d8 }), Math.max(1, nVeh * 2));
+  const vehTails = new THREE.InstancedMesh(new THREE.BoxGeometry(.5, .3, .16), new THREE.MeshBasicMaterial({ color: 0xff5a4d }), Math.max(1, nVeh * 2));
+  const busShields = new THREE.InstancedMesh(new THREE.BoxGeometry(2.5, 1.2, .18), new THREE.MeshLambertMaterial({ color: 0x9fd3ea, emissive: 0x88c8ff, emissiveIntensity: .15 }), Math.max(1, buses.length));
+  const vehicleMeshes = [carBodies, carCabins, busBodies, busStripes, vehWheels, vehHeads, vehTails, busShields];
+  vehicleMeshes.forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); addInstanced(m); });
   if (cars.length) paintPalette(carBodies, cars.length, carColors);
+
+  const WHEEL_ROT = [0, 0, Math.PI / 2];
+  function placeWheels(base, v, wz, wx, wy, scale) {
+    composeInstance(vehWheels, base, v.x, 0, v.z, 0, [-wx, wy, -wz], WHEEL_ROT, scale);
+    composeInstance(vehWheels, base + 1, v.x, 0, v.z, 0, [wx, wy, -wz], WHEEL_ROT, scale);
+    composeInstance(vehWheels, base + 2, v.x, 0, v.z, 0, [-wx, wy, wz], WHEEL_ROT, scale);
+    composeInstance(vehWheels, base + 3, v.x, 0, v.z, 0, [wx, wy, wz], WHEEL_ROT, scale);
+  }
+  function placeLights(base, v, rotY, lx, ly, lz) {
+    composeInstance(vehHeads, base, v.x, 0, v.z, rotY, [-lx, ly, -lz]);
+    composeInstance(vehHeads, base + 1, v.x, 0, v.z, rotY, [lx, ly, -lz]);
+    composeInstance(vehTails, base, v.x, 0, v.z, rotY, [-lx, ly, lz]);
+    composeInstance(vehTails, base + 1, v.x, 0, v.z, rotY, [lx, ly, lz]);
+  }
 
   function updateVehicles(dt) {
     cars.forEach((v, i) => {
       v.z += v.dir * v.speed * dt;
       if (v.z > Z_MAX) v.z = Z_MIN; else if (v.z < Z_MIN) v.z = Z_MAX;
       const rotY = v.dir > 0 ? Math.PI : 0;
-      composeInstance(carBodies, i, v.x, 0, v.z, rotY, [0, .9, 0]);
-      composeInstance(carCabins, i, v.x, 0, v.z, rotY, [0, 1.8, -.3]);
+      composeInstance(carBodies, i, v.x, 0, v.z, rotY, [0, .9, 0], null, [1, 1, v.stretch]);
+      composeInstance(carCabins, i, v.x, 0, v.z, rotY, [0, 1.8, -.3], null, [1, 1, v.cab]);
+      placeLights(i * 2, v, rotY, .75, .82, 2.5 * v.stretch + .02);
+      placeWheels(i * 4, v, 1.7 * v.stretch, 1.06, .42);
     });
+    const cN = cars.length;
     buses.forEach((v, i) => {
       v.z += v.dir * v.speed * dt;
       if (v.z > Z_MAX) v.z = Z_MIN; else if (v.z < Z_MIN) v.z = Z_MAX;
       const rotY = v.dir > 0 ? Math.PI : 0;
       composeInstance(busBodies, i, v.x, 0, v.z, rotY, [0, 1.5, 0]);
       composeInstance(busStripes, i, v.x, 0, v.z, rotY, [0, 2, 0]);
+      composeInstance(busShields, i, v.x, 0, v.z, rotY, [0, 2.05, -4.48]);
+      placeLights((cN + i) * 2, v, rotY, .95, .95, 4.55);
+      placeWheels((cN + i) * 4, v, 3.1, 1.15, .5, [1.25, 1.25, 1.25]);
     });
-    carBodies.instanceMatrix.needsUpdate = true;
-    carCabins.instanceMatrix.needsUpdate = true;
-    busBodies.instanceMatrix.needsUpdate = true;
-    busStripes.instanceMatrix.needsUpdate = true;
+    vehicleMeshes.forEach(m => { m.instanceMatrix.needsUpdate = true; });
   }
 
   /* pedestrians */
@@ -969,20 +1132,46 @@ export function buildCity(ctx) {
   [peopleBodies, peopleHeads].forEach(m => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); addInstanced(m); });
   if (nPeople) { paintPalette(peopleBodies, nPeople, carColors); paintPalette(peopleHeads, nPeople, skinTones); }
 
+  /* people stroll the parks, not the tarmac: each picks a park and wanders
+   * a loose ring on the grass around its feature (clearR keeps them out of
+   * ponds, hedges and padel glass). The wobble on the radius stops the
+   * rings from reading as perfect orbits. */
+  const roadGapAt = (x, z) => Math.min(
+    ...vRoads.map(rx => Math.abs(x - rx)),
+    ...hRoads.map(rz => Math.abs(z - rz))
+  );
   const people = [];
   for (let i = 0; i < nPeople; i++) {
-    const road = vRoads[(Math.random() * vRoads.length) | 0];
-    const side = Math.random() < .5 ? -11 + Math.random() * 3 : 11 - Math.random() * 3;
-    people.push({ x: road + side, z: randomRoadZ(), dir: Math.random() < .5 ? 1 : -1, speed: Math.random() < .25 ? 4.5 : 1.4, phase: Math.random() * 6.28 });
+    // pick a park whose grass ring fits between the feature and the nearest
+    // road (tarmac + sidewalk is ~11 from the centerline) so strollers can
+    // never spill onto the street; almost every mid-block park qualifies
+    let park = { x: anchors[0].x, z: anchors[0].z, clearR: 16 };
+    for (let tries = 0; parkSpots.length && tries < 8; tries++) {
+      const cand = parkSpots[(Math.random() * parkSpots.length) | 0];
+      if (roadGapAt(cand.x, cand.z) - 12.7 >= cand.clearR + .8) { park = cand; break; }
+    }
+    const rMax = Math.min(
+      park.clearR + .8 + Math.random() * Math.max(1.2, 9.5 - park.clearR),
+      roadGapAt(park.x, park.z) - 12.7
+    );
+    people.push({
+      cx: park.x, cz: park.z,
+      r: Math.max(park.clearR * .4, rMax),
+      a: Math.random() * 6.28,
+      av: (Math.random() < .5 ? -1 : 1) * (.06 + Math.random() * .14),
+      phase: Math.random() * 6.28
+    });
   }
 
   function updatePeople(dt, t) {
     people.forEach((p, i) => {
-      p.z += p.dir * p.speed * dt;
-      if (p.z > Z_MAX) p.z = Z_MIN; else if (p.z < Z_MIN) p.z = Z_MAX;
+      p.a += p.av * dt;
+      const wr = p.r + Math.sin(t * .5 + p.phase) * .7;
+      const px = p.cx + Math.cos(p.a) * wr;
+      const pz = p.cz + Math.sin(p.a) * wr;
       const y = Math.abs(Math.sin(t * 4 + p.phase)) * .12;
-      composeInstance(peopleBodies, i, p.x, y, p.z, 0, [0, .9, 0]);
-      composeInstance(peopleHeads, i, p.x, y, p.z, 0, [0, 1.9, 0]);
+      composeInstance(peopleBodies, i, px, y, pz, 0, [0, .9, 0]);
+      composeInstance(peopleHeads, i, px, y, pz, 0, [0, 1.9, 0]);
     });
     peopleBodies.instanceMatrix.needsUpdate = true;
     peopleHeads.instanceMatrix.needsUpdate = true;

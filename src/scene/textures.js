@@ -25,20 +25,36 @@ export function moonCanvas() {
   return c;
 }
 
-/* Day + night facade pair for towers: windows lit at random after dark. */
-export function facadeCanvases(base, baseDark) {
+/* Day + night facade pair for towers: windows lit at random after dark.
+   Two window styles keep the skyline from reading as one repeated building:
+   'grid'   - the classic punched-window grid
+   'ribbon' - full-width horizontal window bands with mullions (office look) */
+export function facadeCanvases(base, baseDark, style = 'grid') {
   const W = 64, H = 128;
   const day = document.createElement('canvas'); day.width = W; day.height = H;
   const nite = document.createElement('canvas'); nite.width = W; nite.height = H;
   const d = day.getContext('2d'), n = nite.getContext('2d');
   d.fillStyle = base; d.fillRect(0, 0, W, H);
   n.fillStyle = '#000'; n.fillRect(0, 0, W, H);
-  for (let y = 6; y < H - 4; y += 14) {
-    for (let x = 7; x < W - 6; x += 14) {
-      d.fillStyle = '#ffffff'; d.fillRect(x, y, 8, 9);
-      d.fillStyle = baseDark; d.fillRect(x + 1, y + 1, 6, 7);
-      n.fillStyle = Math.random() < .6 ? '#ffd97a' : '#1a1a1a';
-      n.fillRect(x + 1, y + 1, 6, 7);
+  if (style === 'ribbon') {
+    for (let y = 6; y < H - 6; y += 16) {
+      d.fillStyle = '#ffffff'; d.fillRect(2, y, W - 4, 10);
+      d.fillStyle = baseDark; d.fillRect(3, y + 1, W - 6, 8);
+      d.fillStyle = base;
+      for (let x = 13; x < W - 6; x += 12) d.fillRect(x, y + 1, 2, 8);
+      for (let x = 3; x < W - 6; x += 12) {
+        n.fillStyle = Math.random() < .55 ? '#ffd97a' : '#141414';
+        n.fillRect(x, y + 1, 10, 8);
+      }
+    }
+  } else {
+    for (let y = 6; y < H - 4; y += 14) {
+      for (let x = 7; x < W - 6; x += 14) {
+        d.fillStyle = '#ffffff'; d.fillRect(x, y, 8, 9);
+        d.fillStyle = baseDark; d.fillRect(x + 1, y + 1, 6, 7);
+        n.fillStyle = Math.random() < .6 ? '#ffd97a' : '#1a1a1a';
+        n.fillRect(x + 1, y + 1, 6, 7);
+      }
     }
   }
   return { day, nite };
@@ -365,7 +381,13 @@ export function drawCardCanvas(c, ch, opts = {}) {
   } while (g.measureText(ch.sub).width > 910 && subSize > 22);
 
   g.fillStyle = ch.accent; g.fillText(ch.sub, 56, 288);
-  g.font = '600 38px Nunito, sans-serif'; g.fillStyle = '#3c4877';
+  // body copy auto-shrinks like the title/sub/foot do, so a long line can
+  // never run off the card's right edge
+  let bodySize = 38;
+  do {
+    g.font = `600 ${bodySize}px Nunito, sans-serif`; bodySize -= 1;
+  } while (ch.lines.some(ln => g.measureText(ln).width > 908) && bodySize > 24);
+  g.fillStyle = '#3c4877';
   ch.lines.forEach((ln, i) => g.fillText(ln, 56, 356 + i * 54));
 
   // footer strip
