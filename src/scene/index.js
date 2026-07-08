@@ -68,20 +68,24 @@ export function startScene() {
   const METRO_RAIL_Y = 58;
   const METRO_CLEARANCE = 58;
   const METRO_SPEED = .026;
-  // A parametric oval keeps the elevated metro smooth by construction. The
-  // older offset-spline route followed the flight path and crossed sides,
-  // which let Catmull-Rom overshoot into hairpins and tiny self-loops from
-  // some mobile camera angles. This curve has no corner control points, so
-  // every deck segment and train tangent comes from the same continuous rail.
+  // A parametric oval keeps the elevated metro smooth by construction. A
+  // single gaussian "overpass bend" pulls the east side inward above the
+  // story corridor, restoring the FPV moment where the camera flies under
+  // the rail without returning to the old offset spline that could fold
+  // into hairpins and tiny self-loops.
   const METRO_CENTER_X = 62;
   const METRO_CENTER_Z = -725;
   const METRO_RADIUS_X = 225;
   const METRO_RADIUS_Z = 880;
+  const METRO_OVERPASS_A = 1.83;
+  const METRO_OVERPASS_PULL = 225;
+  const METRO_OVERPASS_WIDTH = .42;
   class MetroOvalCurve extends THREE.Curve {
     getPoint(t, target = new THREE.Vector3()) {
       const a = t * Math.PI * 2;
+      const overpass = Math.exp(-Math.pow((a - METRO_OVERPASS_A) / METRO_OVERPASS_WIDTH, 2));
       return target.set(
-        METRO_CENTER_X + Math.sin(a) * METRO_RADIUS_X,
+        METRO_CENTER_X + Math.sin(a) * METRO_RADIUS_X - overpass * METRO_OVERPASS_PULL,
         METRO_RAIL_Y,
         METRO_CENTER_Z + Math.cos(a) * METRO_RADIUS_Z
       );
