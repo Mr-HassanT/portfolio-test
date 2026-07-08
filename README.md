@@ -2,7 +2,7 @@
 
 An interactive 3D portfolio for **Muhammad Hassan Tariq** (Quantitative
 Developer, Abu Dhabi). Visitors take a flying tour through a procedurally
-generated city whose **weather tracks the live US market** — a SPY/QQQ/VOO
+generated city whose **weather tracks the live US market** — a SPY/QQQ
 basket turns green days into sunshine and sell-offs into storms.
 
 **Live site:** https://mr-hassant.github.io/portfolio-test/
@@ -63,7 +63,7 @@ CI (`.github/workflows/ci.yml`) runs the same checks on every push/PR.
 
 ## Market-weather feed
 
-- `scripts/update-market-weather.mjs` fetches SPY/QQQ/VOO from the Yahoo
+- `scripts/update-market-weather.mjs` fetches SPY/QQQ from the Yahoo
   Finance chart API and writes `data/market-weather.json`.
 - The Action runs every 30 min during US market hours (Mon–Fri) plus one
   Saturday run, and **skips the commit when the basket hasn't meaningfully

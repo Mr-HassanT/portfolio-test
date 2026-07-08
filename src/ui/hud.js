@@ -166,7 +166,7 @@ export function showWeatherToast() {
     storm: 'risk-off, storm clouds rolling in'
   }[ms.visualMood] || 'market weather is on';
   const lead = ms.status === 'live' ? 'Live market weather' : 'Latest market mood';
-  els.weatherToast.textContent = `🛰 ${lead} · SPY/QQQ/VOO ${signedPct(pct)} — ${line}. Tap the Sky pill for details.`;
+  els.weatherToast.textContent = `🛰 ${lead} · SPY/QQQ ${signedPct(pct)} — ${line}. Tap the Sky pill for details.`;
   els.weatherToast.classList.add('on');
   weatherToastShown = true;
   setTimeout(() => els.weatherToast.classList.remove('on'), 9000);
@@ -294,7 +294,7 @@ export function openMarketPop() {
   };
   els.marketPopTitle.textContent = market ? `ETF basket ${signedPct(market.compositeChangePct)}` : 'ETF basket waiting';
   els.marketPopText.textContent = market
-    ? `SPY 45%, QQQ 35%, VOO 20%. ${ms.detail} This is market weather: green tape warms the skyline, red tape makes it rain.`
+    ? `SPY 56.25%, QQQ 43.75%. ${ms.detail} This is market weather: green tape warms the skyline, red tape makes it rain.`
     : 'The market feed could not be loaded, so the skyline is showing calm skies. Everything else in the city works as usual.';
   els.marketPopMeta.textContent = metaByStatus[ms.status] || 'ETF market mood';
   els.marketPopStamp.textContent = ms.stamp;

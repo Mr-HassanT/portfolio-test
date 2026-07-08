@@ -30,7 +30,7 @@ export const state = {
     updatedAt: null,
     visualMood: 'story',
     headline: 'Loading market feed',
-    detail: 'The city reads SPY, QQQ and VOO. Market red means rough skies.',
+    detail: 'The city reads SPY and QQQ. Market red means rough skies.',
     stamp: ''
   }
 };

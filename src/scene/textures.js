@@ -339,7 +339,7 @@ export function drawWeatherBoard(c) {
   g.font = '800 24px Nunito, sans-serif'; g.fillStyle = '#fff8ec';
   g.fillText(caption, W / 2, 236);
   g.font = '800 20px Nunito, sans-serif'; g.fillStyle = '#8a93b8';
-  g.fillText('BASKET: SPY 45 · QQQ 35 · VOO 20', W / 2, 280);
+  g.fillText('BASKET: SPY 56.25 · QQQ 43.75', W / 2, 280);
 }
 
 /* Chapter story card artwork (1024x720). */

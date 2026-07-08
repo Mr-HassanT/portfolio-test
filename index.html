@@ -25,7 +25,7 @@
 <!-- Twitter / X card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Muhammad Hassan Tariq — Quantitative Developer">
-<meta name="twitter:description" content="An interactive city tour through trading systems, FIX connectivity, options tooling, and ML workflows. The sky trades SPY, QQQ and VOO.">
+<meta name="twitter:description" content="An interactive city tour through trading systems, FIX connectivity, options tooling, and ML workflows. The sky trades SPY and QQQ.">
 <meta name="twitter:image" content="https://mr-hassant.github.io/portfolio-test/assets/portfolio-preview.png">
 
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -64,7 +64,7 @@
 <header id="ignition">
   <div class="sub">✦ the story of a quant developer ✦</div>
   <h1>Welcome to<br>Hassan City</h1>
-  <p>A flying tour through my story - university, trading desks, machine learning, and the side quests in between. One thing before takeoff: this city's weather is live. The sky tracks the US market (SPY, QQQ, VOO) - green days glow, red days rain. So whether we fly through sunshine or a storm is entirely the market's call. I just built the city.</p>
+  <p>A flying tour through my story - university, trading desks, machine learning, and the side quests in between. One thing before takeoff: this city's weather is live. The sky tracks the US market (SPY and QQQ) - green days glow, red days rain. So whether we fly through sunshine or a storm is entirely the market's call. I just built the city.</p>
   <button id="startBtn" type="button">Take Off ✈</button>
 </header>
 
@@ -132,11 +132,11 @@
       </label>
       <div id="weatherLive" aria-live="polite">
         <span class="status" id="weatherLiveStatus">Loading market feed</span>
-        <span class="why" id="weatherLiveWhy">The city reads SPY, QQQ and VOO. Market red means rough skies.</span>
+        <span class="why" id="weatherLiveWhy">The city reads SPY and QQQ. Market red means rough skies.</span>
         <span class="stamp" id="weatherLiveStamp"></span>
         <button id="weatherHelpToggle" type="button" aria-label="Explain the market weather" aria-expanded="false">?</button>
         <div id="weatherLiveHelp">
-          <p>Live mode is market weather: SPY 45%, QQQ 35%, VOO 20%. The feed refreshes every 30 minutes during US market hours; outside them the city shows the latest market mood.</p>
+          <p>Live mode is market weather: SPY 56.25%, QQQ 43.75%. The feed refreshes every 30 minutes during US market hours; outside them the city shows the latest market mood.</p>
           <ul>
             <li><b>Gold</b><span>Above +0.25%: bulls get sunlight.</span></li>
             <li><b>Calm</b><span>-0.25% to +0.25%: sideways tape, steady skies.</span></li>
@@ -171,8 +171,8 @@
     <button class="pop-close" id="marketPopClose" type="button" aria-label="Close">×</button>
     <span class="meta" id="marketPopMeta">ETF market mood</span>
     <h3 id="marketPopTitle">Loading market mood</h3>
-    <p id="marketPopText">SPY, QQQ and VOO drive the city weather. Green tape warms it up; red tape brings the rain.</p>
-    <canvas id="marketSpark" width="720" height="236" role="img" aria-label="Five-session chart of the SPY/QQQ/VOO basket, indexed to 100"></canvas>
+    <p id="marketPopText">SPY and QQQ drive the city weather. Green tape warms it up; red tape brings the rain.</p>
+    <canvas id="marketSpark" width="720" height="236" role="img" aria-label="Five-session chart of the SPY/QQQ basket, indexed to 100"></canvas>
     <span class="stamp" id="marketPopStamp"></span>
   </div>
 </div>
@@ -224,7 +224,7 @@
 
     <section aria-label="About the market weather">
       <h2>About the city's weather</h2>
-      <p>The skyline's weather is driven by a real market feed: a basket of SPY (45%), QQQ (35%) and VOO (20%). Green tape brings sunshine, a pullback brings rain, a sell-off brings the storm. The feed refreshes during US market hours.</p>
+      <p>The skyline's weather is driven by a real market feed: a basket of SPY (56.25%) and QQQ (43.75%). Green tape brings sunshine, a pullback brings rain, a sell-off brings the storm. The feed refreshes during US market hours.</p>
     </section>
 
     <section aria-label="Contact">

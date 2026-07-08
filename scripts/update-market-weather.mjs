@@ -2,7 +2,7 @@
  * Updates data/market-weather.json - the feed that drives Hassan City's sky.
  *
  * How it works:
- *  1. Fetch 5-day daily charts for the ETF basket (SPY/QQQ/VOO) from the
+ *  1. Fetch 5-day daily charts for the ETF basket (SPY/QQQ) from the
  *     Yahoo Finance chart API.
  *  2. Compute a weighted composite % change vs previous close, a mood
  *     bucket, and a 5-session sparkline indexed to 100.
@@ -21,9 +21,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 const OUT = new URL('../data/market-weather.json', import.meta.url);
 const TICKERS = [
-  { symbol: 'SPY', weight: 0.45 },
-  { symbol: 'QQQ', weight: 0.35 },
-  { symbol: 'VOO', weight: 0.20 }
+  { symbol: 'SPY', weight: 0.5625 },
+  { symbol: 'QQQ', weight: 0.4375 }
 ];
 
 // Commit-noise controls: skip the write when the composite moved less than

@@ -28,7 +28,7 @@ export const chapters = [
       'I build trading systems and ML models that',
       'run on live US markets - and so does this',
       'city. The weather here is real: the sky',
-      'tracks SPY, QQQ and VOO right now.',
+      'tracks SPY and QQQ right now.',
       'Green tape shines. Red tape rains.'
     ]
   },
@@ -124,7 +124,7 @@ export const billboardStories = {
 
 /* Ground-level plaza blurbs, one per story stop. */
 export const plazaBlurbs = [
-  'Welcome plaza. Look up for the blimp, look around for the weather - the sky is trading SPY, QQQ and VOO as you read this.',
+  'Welcome plaza. Look up for the blimp, look around for the weather - the sky is trading SPY and QQQ as you read this.',
   "Graduation plaza. Somewhere between a Heriot-Watt foundation year and a Taylor's degree, the markets got interesting.",
   'The building-years plaza. One FIX engine, a fleet of Blazor dashboards, and the climb from Software Engineer to Quant Developer.',
   'Head-office plaza. ML models upstairs, options risk priced daily, fountain fully deployed to production.',
@@ -145,7 +145,7 @@ export const bankNames = [
 /* Bottom-of-screen ticker tape. Clearly playful - everything here is a wink, not a stat. */
 export const tickerItems = [
   'HSSN ▲ GREEN AS ALWAYS', 'C#/.NET ▲ HELD LONG', 'ML.NET ▲ IN PRODUCTION', 'FIX ENGINE ▲ FILLED',
-  'BLAZOR ▲ RENDERED', 'GREEKS Δ Γ Θ ν · LIVE', 'OTC OPTIONS ▲ PRICED', 'SPY·QQQ·VOO → CITY WEATHER',
+  'BLAZOR ▲ RENDERED', 'GREEKS Δ Γ Θ ν · LIVE', 'OTC OPTIONS ▲ PRICED', 'SPY·QQQ → CITY WEATHER',
   'PADEL ▲ HIGH GAMMA', 'CRICKET ▲ COVER DRIVE', 'MUSTANG GT ▲ 5.0L', 'SIDE PROJECTS ▲ SHIPPING',
   'COFFEE ▲ WELL BID', 'SLEEP ▼ OFFERED', 'EM WATCHLIST ▲ OPEN'
 ];
