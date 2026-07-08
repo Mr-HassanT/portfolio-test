@@ -68,67 +68,27 @@ export function startScene() {
   const METRO_RAIL_Y = 58;
   const METRO_CLEARANCE = 58;
   const METRO_SPEED = .026;
-  const METRO_FRONT_OFFSET = 74;
-  const METRO_RETURN_OFFSET = 165;
-  const metroUp = new THREE.Vector3(0, 1, 0);
-  const metroSide = new THREE.Vector3();
-  const metroTangent = new THREE.Vector3();
-  function metroPointAt(t, offset) {
-    const base = path.getPointAt(t);
-    path.getTangentAt(t, metroTangent).normalize();
-    metroSide.crossVectors(metroTangent, metroUp).normalize();
-    return new THREE.Vector3(
-      base.x + metroSide.x * offset,
-      METRO_RAIL_Y,
-      base.z + metroSide.z * offset
-    );
-  }
-  function metroOffsetRun(offset, from, to, steps) {
-    const pts = [];
-    for (let i = 0; i <= steps; i++) {
-      const u = i / steps;
-      const tt = THREE.MathUtils.lerp(from, to, u);
-      const off = typeof offset === 'function' ? offset(tt) : offset;
-      pts.push(metroPointAt(tt, off));
+  // A parametric oval keeps the elevated metro smooth by construction. The
+  // older offset-spline route followed the flight path and crossed sides,
+  // which let Catmull-Rom overshoot into hairpins and tiny self-loops from
+  // some mobile camera angles. This curve has no corner control points, so
+  // every deck segment and train tangent comes from the same continuous rail.
+  const METRO_CENTER_X = 62;
+  const METRO_CENTER_Z = -725;
+  const METRO_RADIUS_X = 225;
+  const METRO_RADIUS_Z = 880;
+  class MetroOvalCurve extends THREE.Curve {
+    getPoint(t, target = new THREE.Vector3()) {
+      const a = t * Math.PI * 2;
+      return target.set(
+        METRO_CENTER_X + Math.sin(a) * METRO_RADIUS_X,
+        METRO_RAIL_Y,
+        METRO_CENTER_Z + Math.cos(a) * METRO_RADIUS_Z
+      );
     }
-    return pts;
   }
-  // The front run starts on the east side, then swings across the flight
-  // path and finishes on the west side - the story camera (y=30) flies
-  // straight under the deck (y=58) FPV-drone style. The swap window MUST
-  // sit on a straight stretch of the path (x=55 between t~.60 and t~.72):
-  // it used to run .66-.80, overlapping the westward jog after stop 3, and
-  // lateral swing + path curvature combined into a self-crossing hairpin
-  // that trains visibly kinked through. Pylons near the corridor are
-  // skipped in city.js, so the crossing is a clear-span bridge.
-  const frontOffsetAt = t => {
-    const s = THREE.MathUtils.smoothstep(t, .615, .715);
-    return THREE.MathUtils.lerp(METRO_FRONT_OFFSET, -METRO_FRONT_OFFSET, s);
-  };
-  // U-turns at both ends of the loop. Sparse hand-placed control points
-  // gave the centripetal catmull pointy triangular corners, so the arcs
-  // are generated instead: a half-oval of 7 points from one run's endpoint
-  // to the other's, bulging past the tour area. bulgeZ sets direction and
-  // depth (negative = south, beyond the landing pad).
-  const turnArc = (a, b, bulgeZ, n = 7) => {
-    const cx = (a.x + b.x) / 2, cz = (a.z + b.z) / 2;
-    const rx = Math.abs(b.x - a.x) / 2, dirX = Math.sign(b.x - a.x);
-    const pts = [];
-    for (let i = 1; i <= n; i++) {
-      const th = Math.PI * i / (n + 1);
-      pts.push(new THREE.Vector3(cx - dirX * Math.cos(th) * rx, METRO_RAIL_Y, cz + Math.sin(th) * bulgeZ));
-    }
-    return pts;
-  };
-  const metroCurve = new THREE.CatmullRomCurve3([
-    ...metroOffsetRun(frontOffsetAt, .015, .985, 96),
-    // far turnaround: wide sweep behind the landing pad, past the city edge
-    ...turnArc(metroPointAt(.985, frontOffsetAt(.985)), metroPointAt(.985, METRO_RETURN_OFFSET), -130),
-    ...metroOffsetRun(METRO_RETURN_OFFSET, .985, .015, 34),
-    // near turnaround: gentle loop north of the take-off point
-    ...turnArc(metroPointAt(.015, METRO_RETURN_OFFSET), metroPointAt(.015, frontOffsetAt(.015)), 55),
-  ], true, 'centripetal');
-  const metroSamples = metroCurve.getPoints(720);
+  const metroCurve = new MetroOvalCurve();
+  const metroSamples = metroCurve.getPoints(900);
 
   /* ---- story content (copied so the scene can attach 3D handles) ---- */
   const chapters = chapterData.map(ch => ({ ...ch }));
