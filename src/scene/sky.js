@@ -41,21 +41,68 @@ export function buildSky(ctx) {
 
   /* ---- clouds ---- */
   const clouds = [];
+  const rainClouds = [];
   const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const puffGeo = new THREE.SphereGeometry(1, 12, 12);
+  const rand = (min, max) => min + Math.random() * (max - min);
+  function addPuff(cloud, x, y, z, radius, sx = 1, sy = 1, sz = 1) {
+    const puff = new THREE.Mesh(puffGeo, cloudMat);
+    puff.position.set(x, y, z);
+    puff.scale.set(radius * sx, radius * sy, radius * sz);
+    cloud.add(puff);
+  }
+  function makeCloud(kind = 'cotton') {
+    const cl = new THREE.Group();
+    cl.userData.kind = kind;
+
+    if (kind === 'bank') {
+      const n = 7 + (Math.random() * 5 | 0);
+      for (let j = 0; j < n; j++) {
+        addPuff(cl, j * rand(4.7, 6.4) - n * 3.1, rand(-.8, 1.4), rand(-4.5, 4.5), rand(4.8, 9.2), rand(1.35, 2.25), rand(.42, .72), rand(.85, 1.45));
+      }
+      addPuff(cl, rand(-8, 8), -1.5, rand(-2.4, 2.4), rand(9, 13), 2.7, .3, 1.45);
+    } else if (kind === 'tower') {
+      const n = 5 + (Math.random() * 4 | 0);
+      for (let j = 0; j < n; j++) {
+        addPuff(cl, j * 5.4 - n * 2.7, rand(-1, 1), rand(-3.2, 3.2), rand(5, 8.5), rand(1.1, 1.7), rand(.62, .9), rand(.9, 1.35));
+      }
+      for (let j = 0; j < 4; j++) {
+        addPuff(cl, rand(-8, 8), 3.4 + j * rand(2.3, 3.7), rand(-2.4, 2.4), rand(4.4, 7.2), rand(.95, 1.55), rand(.85, 1.28), rand(.9, 1.25));
+      }
+    } else if (kind === 'scud') {
+      const n = 4 + (Math.random() * 4 | 0);
+      for (let j = 0; j < n; j++) {
+        addPuff(cl, j * rand(3.2, 4.8) - n * 2.1, rand(-.7, .9), rand(-5, 5), rand(2.8, 5.6), rand(1.6, 2.7), rand(.28, .55), rand(.7, 1.15));
+      }
+    } else {
+      const n = 3 + (Math.random() * 3 | 0);
+      for (let j = 0; j < n; j++) {
+        const s = 4 + Math.random() * 5;
+        addPuff(cl, j * 5 - n * 2.5, (Math.random() - .5) * 2, (Math.random() - .5) * 4, s);
+      }
+    }
+
+    return cl;
+  }
+  function seedCloud(cl, weatherOnly = false) {
+    const lowScud = cl.userData.kind === 'scud';
+    const tower = cl.userData.kind === 'tower';
+    cl.position.set((Math.random() - .5) * 600, weatherOnly ? (lowScud ? 58 : 75) + Math.random() * (tower ? 48 : 35) : 85 + Math.random() * 55, 170 - Math.random() * 1800);
+    cl.userData.speed = (weatherOnly ? .85 : 1.2) + Math.random() * (weatherOnly ? 1.05 : 1.6);
+    cl.userData.stormScale = weatherOnly ? rand(1.04, 1.14) : 1;
+    cl.visible = !weatherOnly;
+    clouds.push(cl);
+    if (weatherOnly) rainClouds.push(cl);
+    scene.add(cl);
+  }
   const nClouds = Math.round(25 * density);
   for (let i = 0; i < nClouds; i++) {
-    const cl = new THREE.Group();
-    const n = 3 + (Math.random() * 3 | 0);
-    for (let j = 0; j < n; j++) {
-      const s = 4 + Math.random() * 5;
-      const puff = new THREE.Mesh(new THREE.SphereGeometry(s, 12, 12), cloudMat);
-      puff.position.set(j * 5 - n * 2.5, (Math.random() - .5) * 2, (Math.random() - .5) * 4);
-      cl.add(puff);
-    }
-    cl.position.set((Math.random() - .5) * 600, 85 + Math.random() * 55, 170 - Math.random() * 1800);
-    cl.userData.speed = 1.2 + Math.random() * 1.6;
-    clouds.push(cl);
-    scene.add(cl);
+    seedCloud(makeCloud('cotton'));
+  }
+  const rainCloudTypes = ['bank', 'bank', 'tower', 'scud', 'scud'];
+  const nRainClouds = Math.round(42 * density);
+  for (let i = 0; i < nRainClouds; i++) {
+    seedCloud(makeCloud(rainCloudTypes[i % rainCloudTypes.length]), true);
   }
 
   /* ---- circling birds ---- */
@@ -133,6 +180,175 @@ export function buildSky(ctx) {
   rain.visible = false;
   scene.add(rain);
 
+  /* ---- distant lightning ---- */
+  const LIGHTNING_SEGMENTS = 18;
+  const lightningPositions = new Float32Array(LIGHTNING_SEGMENTS * 6);
+  const lightningGeo = new THREE.BufferGeometry();
+  lightningGeo.setAttribute('position', new THREE.BufferAttribute(lightningPositions, 3));
+  lightningGeo.setDrawRange(0, 0);
+  const lightningMat = new THREE.LineBasicMaterial({
+    color: 0xf7fbff,
+    transparent: true,
+    opacity: 0,
+    fog: false,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  const lightning = new THREE.LineSegments(lightningGeo, lightningMat);
+  const lightningCoreMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0,
+    fog: false,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  const lightningBoltGlowMat = new THREE.MeshBasicMaterial({
+    color: 0x9fc5ff,
+    transparent: true,
+    opacity: 0,
+    fog: false,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  const boltGeo = new THREE.CylinderGeometry(1, 1, 1, 6);
+  const boltAxis = new THREE.Vector3(0, 1, 0);
+  const boltPieces = [];
+  function lightningFlashCanvas() {
+    const c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 256;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0, 'rgba(255,255,255,.9)');
+    grad.addColorStop(.2, 'rgba(219,234,255,.42)');
+    grad.addColorStop(.58, 'rgba(156,189,255,.16)');
+    grad.addColorStop(1, 'rgba(156,189,255,0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 256, 256);
+    return c;
+  }
+  const lightningFlashMat = new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(lightningFlashCanvas()),
+    color: 0xd9e7ff,
+    transparent: true,
+    opacity: 0,
+    fog: false,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  const lightningFlash = new THREE.Sprite(lightningFlashMat);
+  lightningFlash.scale.set(220, 150, 1);
+  const lightningGroup = new THREE.Group();
+  lightningGroup.visible = false;
+  lightningGroup.add(lightningFlash, lightning);
+  for (let i = 0; i < LIGHTNING_SEGMENTS; i++) {
+    const glow = new THREE.Mesh(boltGeo, lightningBoltGlowMat);
+    const core = new THREE.Mesh(boltGeo, lightningCoreMat);
+    glow.visible = false;
+    core.visible = false;
+    boltPieces.push({ glow, core });
+    lightningGroup.add(glow, core);
+  }
+  scene.add(lightningGroup);
+  let lightningTimer = rand(1.2, 2.4);
+  let lightningAge = 1;
+
+  function placeBoltMesh(mesh, a, b, radius) {
+    const start = new THREE.Vector3(a.x, a.y, a.z);
+    const end = new THREE.Vector3(b.x, b.y, b.z);
+    const dir = end.clone().sub(start);
+    const len = dir.length();
+    if (len < .1) return;
+    mesh.visible = true;
+    mesh.position.copy(start).add(end).multiplyScalar(.5);
+    mesh.quaternion.setFromUnitVectors(boltAxis, dir.normalize());
+    mesh.scale.set(radius, len, radius);
+  }
+
+  function seedLightning() {
+    const side = Math.random() > .5 ? 1 : -1;
+    const sideMin = state.isMobile ? 105 : 190;
+    const sideMax = state.isMobile ? 175 : 330;
+    const baseX = rand(sideMin, sideMax) * side;
+    const baseZ = rand(-620, -410);
+    const topY = rand(122, 160);
+    const bottomY = rand(28, 54);
+    const steps = 7 + (Math.random() * 4 | 0);
+    const points = [];
+    boltPieces.forEach(({ glow, core }) => {
+      glow.visible = false;
+      core.visible = false;
+    });
+    for (let i = 0; i <= steps; i++) {
+      const k = i / steps;
+      points.push({
+        x: baseX + rand(-11, 11) * i * .55 + Math.sin(k * Math.PI * 2) * 12,
+        y: topY + (bottomY - topY) * k,
+        z: baseZ + rand(-5, 5)
+      });
+    }
+
+    let segment = 0;
+    function writeSegment(a, b) {
+      if (segment >= LIGHTNING_SEGMENTS) return;
+      const p = segment * 6;
+      lightningPositions[p] = a.x;
+      lightningPositions[p + 1] = a.y;
+      lightningPositions[p + 2] = a.z;
+      lightningPositions[p + 3] = b.x;
+      lightningPositions[p + 4] = b.y;
+      lightningPositions[p + 5] = b.z;
+      placeBoltMesh(boltPieces[segment].glow, a, b, state.isMobile ? 1.15 : 1.35);
+      placeBoltMesh(boltPieces[segment].core, a, b, state.isMobile ? .38 : .46);
+      segment++;
+    }
+
+    for (let i = 1; i < points.length; i++) writeSegment(points[i - 1], points[i]);
+    for (let i = 2; i < points.length - 1; i += 2 + (Math.random() * 2 | 0)) {
+      const a = points[i];
+      writeSegment(a, { x: a.x + rand(20, 46) * (Math.random() > .5 ? 1 : -1), y: a.y - rand(8, 18), z: a.z + rand(-10, 10) });
+    }
+
+    lightningGeo.setDrawRange(0, segment * 2);
+    lightningGeo.attributes.position.needsUpdate = true;
+    lightningFlash.position.set(baseX, (topY + bottomY) * .5, baseZ + 6);
+    lightningFlash.scale.set(rand(210, 330), rand(145, 220), 1);
+    lightningAge = 0;
+    lightningTimer = rand(state.weatherMood === 'storm' ? 2.4 : 3.8, state.weatherMood === 'storm' ? 4.6 : 6.4);
+  }
+
+  function updateLightning(dt) {
+    const wetSky = state.weatherMood === 'rain' || state.weatherMood === 'storm';
+    const active = wetSky && !state.reduceMotion;
+    if (!active) {
+      lightningGroup.visible = false;
+      lightningMat.opacity = 0;
+      lightningCoreMat.opacity = 0;
+      lightningBoltGlowMat.opacity = 0;
+      lightningFlashMat.opacity = 0;
+      return;
+    }
+
+    lightningGroup.position.copy(camera.position);
+    lightningTimer -= dt;
+    lightningAge += dt;
+    if (lightningTimer <= 0 && lightningAge > .7) seedLightning();
+
+    let flash = 0;
+    if (lightningAge < .06) flash = 1;
+    else if (lightningAge < .14) flash = .18;
+    else if (lightningAge < .23) flash = .78;
+    else if (lightningAge < .42) flash = (.42 - lightningAge) / .19 * .36;
+
+    const strength = state.weatherMood === 'storm' ? 1 : .74;
+    lightningMat.opacity = flash * strength * .7;
+    lightningCoreMat.opacity = flash * strength;
+    lightningBoltGlowMat.opacity = flash * strength * .32;
+    lightningFlashMat.opacity = flash * strength * .38;
+    lightningGroup.visible = flash > .01;
+  }
+
   function updateRain(dt) {
     const mood = state.weatherMood;
     const active = (mood === 'rain' || mood === 'storm') && !state.reduceMotion;
@@ -177,6 +393,11 @@ export function buildSky(ctx) {
     const look = weatherLooks[state.weatherMood];
     const liveGlow = state.weatherMode === 'live' ? state.marketGlowK : 0;
     const liveRisk = state.weatherMode === 'live' ? state.marketRiskK : 0;
+    const wetSky = state.weatherMood === 'rain' || state.weatherMood === 'storm';
+    rainClouds.forEach(cl => {
+      cl.visible = wetSky;
+      cl.scale.setScalar(state.weatherMood === 'storm' ? cl.userData.stormScale : 1);
+    });
     if (look) {
       scene.background = new THREE.Color(look.sky);
       scene.fog.color.setHex(look.fog);
@@ -229,12 +450,17 @@ export function buildSky(ctx) {
     if (state.weatherMood !== 'rain' && state.weatherMood !== 'storm') {
       rainMat.opacity = 0;
       rain.visible = false;
+      lightningGroup.visible = false;
+      lightningMat.opacity = 0;
+      lightningCoreMat.opacity = 0;
+      lightningBoltGlowMat.opacity = 0;
+      lightningFlashMat.opacity = 0;
     }
   }
 
   ctx.sky = {
-    sun, ambient, sunGroup, moonGroup, clouds, birds, flocks, cloudMat,
-    setTimeOfDay, updateRain, resetRainIfDry
+    sun, ambient, sunGroup, moonGroup, clouds, rainClouds, birds, flocks, cloudMat,
+    setTimeOfDay, updateRain, updateLightning, resetRainIfDry
   };
   return ctx.sky;
 }

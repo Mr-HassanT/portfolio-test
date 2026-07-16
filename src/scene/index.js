@@ -317,6 +317,7 @@ export function startScene() {
     sky.sunGroup.position.set(camera.position.x + 250 - k * 130, 175 - k * 235, camera.position.z - 830);
     sky.moonGroup.position.set(camera.position.x - 260 + k * 140, -45 + k * 215, camera.position.z - 830);
     sky.updateRain(dt);
+    sky.updateLightning(dt);
 
     const v = Math.abs(scrollY - lastScroll); lastScroll = scrollY;
     const targetSpeed = state.mode === 'roam' ? Math.min(260, freeState.speed) : (state.started ? Math.min(240, v * 4) : 0);
