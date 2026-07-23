@@ -24,7 +24,7 @@ select:focus-visible,
    The 3D scene reads the same preference in JS and stops ambient motion. */
 @media (prefers-reduced-motion: reduce){
   #ignition,#finale,#hud,#hint,#weatherToast,#configPanel,#desktopControls,#touchControls{transition:none}
-  .landing-copy,.flight-card{animation:none}
+  .landing-copy,.flight-card,.landing-atmosphere::before,.landing-sun::before,.landing-cloud,.landing-flight-line::after,.landing-city::after,.market-beacon,.landing-ticker-track,.start-icon{animation:none}
   .start-icon{transition:none}
   #ticker .tape{animation:none}
   .float-pop{transition:none}

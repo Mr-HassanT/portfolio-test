@@ -31,9 +31,9 @@
   .flight-stops li:last-child{grid-column:1/-1}
   .landing-market{padding:.76rem 1.05rem}
   .flight-card::before,.flight-card::after{right:72px}
-  .landing-footer{display:none}
+  .landing-ticker{display:none}
   .landing-sun{right:-22px;top:13vh;width:96px}
-  .cloud-one{left:-58px;top:24vh;transform:scale(.72)}
+  .cloud-one{display:none}
   .cloud-two{right:33vw;top:9vh;transform:scale(.48)}
   .landing-flight-line{right:-5vw;top:26vh;width:54vw}
   .landing-city{height:18vh;min-height:120px}
