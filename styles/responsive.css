@@ -1,6 +1,7 @@
 /* Small-screen and input-type adaptations. */
 
 @media (max-width: 768px){
+  .landing-fx{opacity:1;filter:saturate(1.08) contrast(1.03)}
   .landing-frame{padding:16px 16px 28px;display:block;min-height:100svh}
   .landing-nav{position:relative;z-index:3}
   .brand-mark{width:42px;height:42px;border-radius:11px;box-shadow:4px 4px 0 var(--coral)}
@@ -32,10 +33,10 @@
   .landing-market{padding:.76rem 1.05rem}
   .flight-card::before,.flight-card::after{right:72px}
   .landing-ticker{display:none}
-  .landing-sun{right:-22px;top:13vh;width:96px}
+  .landing-sun{right:-18px;top:12vh;width:108px}
   .cloud-one{display:none}
   .cloud-two{right:33vw;top:9vh;transform:scale(.48)}
-  .landing-flight-line{right:-5vw;top:26vh;width:54vw}
+  .landing-flight-line{display:none}
   .landing-city{height:18vh;min-height:120px}
 
   #configToggle{right:12px;top:12px;width:44px}

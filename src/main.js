@@ -12,6 +12,7 @@
 import { state } from './state.js';
 import { loadMarketWeather, startMarketWeatherRefresh } from './market-weather.js';
 import * as hud from './ui/hud.js';
+import { initLandingEffects } from './ui/landing-effects.js';
 
 const THREE_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
 
@@ -62,6 +63,7 @@ async function bootScene() {
   }
 }
 
+initLandingEffects();
 hud.initHud();
 
 loadMarketWeather().then(() => hud.onMarketUpdated());
