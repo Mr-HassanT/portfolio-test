@@ -1,6 +1,43 @@
 /* Small-screen and input-type adaptations. */
 
 @media (max-width: 768px){
+  .landing-frame{padding:16px 16px 28px;display:block;min-height:100svh}
+  .landing-nav{position:relative;z-index:3}
+  .brand-mark{width:42px;height:42px;border-radius:11px;box-shadow:4px 4px 0 var(--coral)}
+  .brand-copy strong{font-size:.9rem}
+  .brand-copy small{font-size:.56rem}
+  .location-wide{display:none}
+  .location-short{display:inline}
+  .landing-location{padding:.55rem .7rem;font-size:.62rem}
+  .landing-shell{display:block;padding:clamp(46px,7vh,68px) 0 130px}
+  .landing-copy{max-width:590px}
+  .landing-eyebrow{margin-bottom:.85rem;font-size:.58rem}
+  .landing-eyebrow span{padding:.36rem .52rem}
+  .landing-role{font-size:.65rem;letter-spacing:.12em}
+  #ignition h1{margin-top:.65rem;font-size:clamp(3rem,13vw,4.7rem);line-height:.9}
+  .landing-intro{margin-top:1rem;font-size:.98rem;line-height:1.5}
+  .landing-actions{align-items:flex-start;margin-top:1.5rem;gap:1rem}
+  #startBtn{min-width:220px;min-height:56px}
+  .landing-note{max-width:190px}
+  .flight-card{max-width:590px;margin-top:2.4rem;border-radius:20px;box-shadow:8px 8px 0 rgba(35,49,95,.2)}
+  .flight-card-head{padding:1rem 1.05rem}
+  .flight-card-head strong{font-size:1.08rem}
+  .flight-stops{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.25rem 1rem;padding:.8rem 1.05rem}
+  .flight-stops li{grid-template-columns:2rem 1fr;gap:.5rem;min-height:47px}
+  .flight-stops li::after{display:none}
+  .stop-no{width:30px;height:30px}
+  .stop-copy{display:flex;flex-direction:column;align-items:flex-start;gap:.05rem}
+  .stop-copy small{text-align:left;font-size:.58rem}
+  .flight-stops li:last-child{grid-column:1/-1}
+  .landing-market{padding:.76rem 1.05rem}
+  .flight-card::before,.flight-card::after{right:72px}
+  .landing-footer{display:none}
+  .landing-sun{right:-22px;top:13vh;width:96px}
+  .cloud-one{left:-58px;top:24vh;transform:scale(.72)}
+  .cloud-two{right:33vw;top:9vh;transform:scale(.48)}
+  .landing-flight-line{right:-5vw;top:26vh;width:54vw}
+  .landing-city{height:18vh;min-height:120px}
+
   #configToggle{right:12px;top:12px;width:44px}
   #configPanel{left:12px;right:12px;top:64px;width:auto;max-height:calc(100dvh - 178px);overflow:auto}
   #modeControls button,#waypointSelect{height:40px;font-size:.7rem}
@@ -35,12 +72,54 @@
 }
 
 @media (max-width: 380px){
+  .landing-frame{padding-left:13px;padding-right:13px}
+  .brand-copy small{display:none}
+  .landing-location{font-size:.56rem}
+  .location-pulse{width:7px;height:7px}
+  .landing-shell{padding-top:38px}
+  .landing-eyebrow{gap:.3rem}
+  .landing-eyebrow span{padding:.32rem .42rem}
+  #ignition h1{font-size:2.78rem}
+  .landing-intro{font-size:.9rem}
+  .landing-actions{display:block}
+  #startBtn{width:calc(100% - 8px);min-width:0}
+  .landing-note{margin-top:1rem;max-width:none}
+  .flight-card{margin-top:1.8rem}
+  .flight-stops{gap:.2rem .55rem}
+  .stop-copy strong{font-size:.82rem}
+  .stop-copy small{font-size:.54rem}
+  .market-tag{display:none}
+  .landing-market{grid-template-columns:auto 1fr}
+  .market-copy strong{font-size:.74rem}
+
   #hud{gap:.36rem;padding:0 .45rem}
   .pill{padding:.48rem .58rem;min-height:40px}
   .pill .value{font-size:.9rem}
   .pill .label{font-size:.5rem;letter-spacing:.14em}
   #weatherToast{top:calc(env(safe-area-inset-top,0px) + 100px);font-size:.68rem}
   #hint{top:calc(env(safe-area-inset-top,0px) + 46px);font-size:.64rem;max-width:82vw}
+}
+
+@media (max-height: 720px) and (min-width: 769px){
+  .landing-frame{padding-top:20px;padding-bottom:26px}
+  .landing-shell{padding:32px 0 105px;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:44px}
+  #ignition h1{font-size:clamp(3.5rem,7.5vh,5rem)}
+  .landing-intro{margin-top:1rem;font-size:.95rem}
+  .landing-actions{margin-top:1.35rem}
+  .flight-stops li{min-height:43px}
+  .flight-card-head{padding:1rem 1.2rem}
+  .flight-stops{padding:.7rem 1.2rem .65rem}
+  .landing-market{padding:.7rem 1.2rem}
+  .landing-city{min-height:120px;height:21vh}
+}
+
+@media (max-height: 690px) and (max-width: 768px){
+  .landing-shell{padding-top:30px}
+  .landing-intro{max-width:52ch}
+  .flight-card{margin-top:1.6rem}
+  .stop-copy small{display:none}
+  .flight-stops li{min-height:40px}
+  .landing-city{min-height:100px}
 }
 
 /* Mouse-first devices: hide touch pads. Touch-first: hide keyboard help. */

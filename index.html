@@ -62,10 +62,61 @@
 <div id="hint">scroll to ride the trend ✈</div>
 
 <header id="ignition">
-  <div class="sub">✦ the story of a quant developer ✦</div>
-  <h1>Welcome to<br>Hassan City</h1>
-  <p>A flying tour through my story - university, trading desks, machine learning, and the side quests in between. One thing before takeoff: this city's weather is live. The sky tracks the US market (SPY and QQQ) - green days glow, red days rain. So whether we fly through sunshine or a storm is entirely the market's call. I just built the city.</p>
-  <button id="startBtn" type="button">Take Off ✈</button>
+  <div class="landing-atmosphere" aria-hidden="true">
+    <span class="landing-sun"></span>
+    <span class="landing-cloud cloud-one"></span>
+    <span class="landing-cloud cloud-two"></span>
+    <span class="landing-flight-line"></span>
+    <span class="landing-city"></span>
+  </div>
+
+  <div class="landing-frame">
+    <div class="landing-nav">
+      <div class="landing-brand">
+        <span class="brand-mark" aria-hidden="true">HC</span>
+        <span class="brand-copy"><strong>Hassan City</strong><small>Interactive portfolio</small></span>
+      </div>
+      <div class="landing-location">
+        <span class="location-pulse" aria-hidden="true"></span>
+        <span class="location-wide">Abu Dhabi · Portfolio 2026</span>
+        <span class="location-short">AUH · 2026</span>
+      </div>
+    </div>
+
+    <div class="landing-shell">
+      <div class="landing-copy">
+        <div class="landing-eyebrow"><span>Now boarding</span><span>Flight HSSN 01</span></div>
+        <p class="landing-role">Muhammad Hassan Tariq · Quantitative Developer</p>
+        <h1><span>Welcome to</span> Hassan City.</h1>
+        <p class="landing-intro">A portfolio you can fly through — from university and trading desks to machine learning, options, and the side quests in between. The skyline even reads the market while you explore.</p>
+        <div class="landing-actions">
+          <button id="startBtn" type="button"><span class="start-label">Begin the flight</span><span class="start-icon" aria-hidden="true">✈</span></button>
+          <span class="landing-note"><span class="note-dot" aria-hidden="true"></span>Guided 3D tour · Touch + keyboard ready</span>
+        </div>
+      </div>
+
+      <aside class="flight-card" aria-label="Tour flight plan">
+        <div class="flight-card-head">
+          <div><span class="panel-label">Flight plan</span><strong>Five stops. One city.</strong></div>
+          <span class="flight-code">HSSN / 01</span>
+        </div>
+        <ol class="flight-stops">
+          <li><span class="stop-no">01</span><span class="stop-copy"><strong>Origins</strong><small>AI &amp; cybersecurity</small></span></li>
+          <li><span class="stop-no">02</span><span class="stop-copy"><strong>Trading desk</strong><small>FIX · Risk · Execution</small></span></li>
+          <li><span class="stop-no">03</span><span class="stop-copy"><strong>Quant equities</strong><small>ML · Options · Data</small></span></li>
+          <li><span class="stop-no">04</span><span class="stop-copy"><strong>Toolbox</strong><small>C# · Python · Cloud</small></span></li>
+          <li><span class="stop-no">05</span><span class="stop-copy"><strong>After hours</strong><small>Sport · Cars · Side quests</small></span></li>
+        </ol>
+        <div class="landing-market">
+          <span class="market-beacon" id="landingMarketBeacon" aria-hidden="true"></span>
+          <span class="market-copy"><small id="landingMarketLabel">Reading the market sky</small><strong id="landingMarketValue">SPY + QQQ · Loading</strong></span>
+          <span class="market-tag">Live feed</span>
+        </div>
+      </aside>
+    </div>
+
+    <div class="landing-footer"><span>Quant development · Trading systems · ML</span><span>Scroll after takeoff to travel</span></div>
+  </div>
 </header>
 
 <div id="hud" role="status" aria-label="Flight instruments">

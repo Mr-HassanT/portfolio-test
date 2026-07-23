@@ -25,6 +25,7 @@ let weatherToastShown = false;
 export function initHud() {
   els = {
     ignition: $('ignition'), startBtn: $('startBtn'), hud: $('hud'), hint: $('hint'),
+    landingMarketLabel: $('landingMarketLabel'), landingMarketValue: $('landingMarketValue'), landingMarketBeacon: $('landingMarketBeacon'),
     ticker: $('ticker'), tape: $('tape'), finale: $('finale'),
     configToggle: $('configToggle'), configPanel: $('configPanel'), configClose: $('configClose'),
     freeRoamBtn: $('freeRoamBtn'), resumeStoryBtn: $('resumeStoryBtn'), waypointSelect: $('waypointSelect'),
@@ -52,6 +53,7 @@ export function initHud() {
   }
 
   bindEvents();
+  updateLandingWeather();
   updateLivePanel();
   updateSkyPill();
 }
@@ -153,6 +155,23 @@ export function updateLivePanel() {
   els.weatherLiveStamp.textContent = ms.stamp;
 }
 
+function updateLandingWeather() {
+  if (!els.landingMarketLabel || !els.landingMarketValue || !els.landingMarketBeacon) return;
+  const ms = state.marketState;
+  const pct = ms.market?.compositeChangePct;
+  const labels = {
+    live: 'Live market weather',
+    closed: 'Latest market close',
+    stale: 'Older market reading',
+    fallback: 'Market feed unavailable',
+    loading: 'Reading the market sky'
+  };
+  els.landingMarketLabel.textContent = labels[ms.status] || labels.loading;
+  els.landingMarketValue.textContent = pct == null ? 'SPY + QQQ · Awaiting feed' : `SPY + QQQ ${signedPct(pct)}`;
+  els.landingMarketBeacon.classList.toggle('is-down', pct != null && pct < 0);
+  els.landingMarketBeacon.classList.toggle('is-stale', ms.status === 'stale' || ms.status === 'fallback');
+}
+
 export function showWeatherToast() {
   if (weatherToastShown || !state.started || state.weatherMode !== 'live') return;
   const ms = state.marketState;
@@ -174,6 +193,7 @@ export function showWeatherToast() {
 
 /* Called after every market feed (re)load. */
 export function onMarketUpdated() {
+  updateLandingWeather();
   updateLivePanel();
   applyWeatherMode();
   showWeatherToast();
